@@ -14,16 +14,23 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
   useEffect(() => {
     if (!selected || pin.length < 4) return;
     let cancelled = false;
-    hashPin(pin).then((h) => {
-      if (cancelled) return;
-      if (h === selected.pinHash) {
-        onLogin(selected);
-      } else {
+    hashPin(pin)
+      .then((h) => {
+        if (cancelled) return;
+        if (h === selected.pinHash) {
+          onLogin(selected);
+        } else {
+          setError(true);
+          setPin('');
+          setTimeout(() => setError(false), 1500);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
         setError(true);
         setPin('');
         setTimeout(() => setError(false), 1500);
-      }
-    });
+      });
     return () => { cancelled = true; };
   }, [pin, selected, onLogin]);
 

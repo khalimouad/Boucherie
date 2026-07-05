@@ -133,10 +133,20 @@ db.version(1).stores({
 
 export async function hashPin(pin: string): Promise<string> {
   const data = new TextEncoder().encode('boucherie:' + pin);
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  // crypto.subtle only exists in secure contexts (HTTPS / localhost); a POS
+  // tablet reaching the app over plain LAN http needs the pure-JS fallback
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    } catch {
+      /* fall through to JS implementation */
+    }
+  }
+  const { sha256Hex } = await import('./sha256');
+  return sha256Hex(data);
 }
 
 export interface TicketSettings {

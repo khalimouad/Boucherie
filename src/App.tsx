@@ -37,7 +37,10 @@ export default function App() {
   const [page, setPage] = useState<PageId>('pos');
 
   useEffect(() => {
-    seedIfEmpty().then(() => setReady(true));
+    // never leave the app stuck on the loading screen if seeding fails
+    seedIfEmpty()
+      .catch((e) => console.error('seed failed', e))
+      .finally(() => setReady(true));
   }, []);
 
   if (!ready) {
