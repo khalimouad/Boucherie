@@ -85,7 +85,9 @@ export function NumPad({
       return onChange(value === '' ? '0.' : value + '.');
     }
     if (value.length >= maxLen) return;
-    if (value === '0' && k !== '.') return onChange(k);
+    // collapse a leading zero for numeric amounts only — PIN entry (allowDecimal=false)
+    // must keep raw digits so codes like 0000 stay typable
+    if (allowDecimal && value === '0' && k !== '.') return onChange(k);
     // limit to 3 decimals (weights) — money inputs get rounded on commit
     const dot = value.indexOf('.');
     if (dot >= 0 && value.length - dot > 3) return;
