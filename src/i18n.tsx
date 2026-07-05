@@ -201,6 +201,42 @@ const dict = {
     fr: 'ATTENTION : toutes les ventes, achats et produits seront supprimés. Continuer ?',
     ar: 'انتبه: غادي يتمسحو جميع المبيعات والمشتريات والمنتجات. نكملو؟',
   },
+
+  // cloud sync
+  cloudSync: { fr: 'Synchronisation cloud', ar: 'المزامنة السحابية' },
+  cloudHint: {
+    fr: 'Partage les données en temps réel entre la caisse et le mobile du gérant.',
+    ar: 'كتشارك البيانات مباشرة بين الصندوق وهاتف المسيّر.',
+  },
+  cloudPassword: { fr: 'Mot de passe cloud', ar: 'كلمة سر السحابة' },
+  cloudEnable: { fr: 'Activer la synchronisation', ar: 'تفعيل المزامنة' },
+  cloudDisable: { fr: 'Désactiver', ar: 'إيقاف' },
+  cloudConnected: { fr: 'Connecté — synchronisation active', ar: 'متصل — المزامنة خدامة' },
+  cloudOff: { fr: 'Désactivée — données locales uniquement', ar: 'موقوفة — البيانات محلية فقط' },
+  cloudError: { fr: 'Erreur de synchronisation', ar: 'خطأ فالمزامنة' },
+  cloudWrongPassword: { fr: 'Mot de passe incorrect', ar: 'كلمة السر غالطة' },
+  syncNow: { fr: 'Synchroniser maintenant', ar: 'زامن دابا' },
+  lastSync: { fr: 'Dernière sync', ar: 'آخر مزامنة' },
+  pendingChanges: { fr: 'en attente', ar: 'فالانتظار' },
+
+  // barcode
+  barcode: { fr: 'Code-barres balance', ar: 'الباركود ديال الميزان' },
+  barcodeHint: {
+    fr: 'Scannez les étiquettes de la balance : l’article et le poids/prix s’ajoutent au panier automatiquement.',
+    ar: 'سكاني إتيكيط الميزان: السلعة والوزن/الثمن كيتزادو للسلة بوحدهم.',
+  },
+  barcodeEnable: { fr: 'Activer la lecture code-barres', ar: 'تفعيل قراءة الباركود' },
+  barcodePrefix: { fr: 'Préfixe', ar: 'البادئة' },
+  barcodeCodeLen: { fr: 'Chiffres code article', ar: 'أرقام كود السلعة' },
+  barcodeValueLen: { fr: 'Chiffres valeur', ar: 'أرقام القيمة' },
+  barcodeValueMode: { fr: 'La valeur contient', ar: 'القيمة فيها' },
+  barcodePrice: { fr: 'Prix (centimes)', ar: 'الثمن (سنتيم)' },
+  barcodeWeight: { fr: 'Poids (grammes)', ar: 'الوزن (غرام)' },
+  barcodeTest: { fr: 'Tester un code-barres', ar: 'جرب باركود' },
+  barcodeTestPlaceholder: { fr: 'Tapez ou scannez un code ici…', ar: 'كتب ولا سكاني كود هنا…' },
+  productCode: { fr: 'Code balance / PLU', ar: 'كود الميزان / PLU' },
+  scanAdded: { fr: 'Article scanné ajouté', ar: 'تزادت السلعة المسكانية' },
+  scanUnknown: { fr: 'Code-barres inconnu', ar: 'باركود ماشي معروف' },
 } as const;
 
 export type TKey = keyof typeof dict;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type User, type Waste as WasteRow, type WasteReason } from '../db';
+import { db, uid, type User, type Waste as WasteRow, type WasteReason } from '../db';
 import { localName, useI18n, type TKey } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, round2, startOfDay, todayISO } from '../utils';
 import { Empty, Modal, useToast } from '../components/shared';
@@ -21,7 +21,7 @@ export default function Waste({ user }: { user: User }) {
   const products = useLiveQuery(() => db.products.toArray(), []) ?? [];
 
   const [show, setShow] = useState(false);
-  const [productId, setProductId] = useState<number | ''>('');
+  const [productId, setProductId] = useState<string>('');
   const [qty, setQty] = useState('');
   const [reason, setReason] = useState<WasteReason>('bones');
   const [note, setNote] = useState('');
@@ -38,6 +38,7 @@ export default function Waste({ user }: { user: User }) {
   const save = async () => {
     if (!product || qtyNum <= 0) return toast(t('required'), 'info');
     const row: WasteRow = {
+      id: uid(),
       date: todayISO(),
       productId: product.id!,
       nameFr: product.nameFr,
@@ -132,7 +133,7 @@ export default function Waste({ user }: { user: User }) {
         >
           <div className="field">
             <label>{t('product')} *</label>
-            <select value={productId} onChange={(e) => setProductId(e.target.value ? Number(e.target.value) : '')}>
+            <select value={productId} onChange={(e) => setProductId(e.target.value)}>
               <option value="">—</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>{localName(p, lang)}</option>

@@ -1,16 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
-import { db, defaultTicket, getTicketSettings, saveTicketSettings, type Sale, type TicketSettings } from '../db';
-import { useI18n } from '../i18n';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  db,
+  defaultBarcode,
+  defaultTicket,
+  getBarcodeSettings,
+  getTicketSettings,
+  saveBarcodeSettings,
+  saveTicketSettings,
+  type BarcodeSettings,
+  type Sale,
+  type TicketSettings,
+} from '../db';
+import { useI18n, localName } from '../i18n';
 import { Modal, Switch, useToast } from '../components/shared';
 import { buildTicketHTML, printHTML } from '../print';
+import { CLOUD_EMAIL, disableSync, enableSync, getSyncStatus, subscribeSync, syncNow } from '../sync';
+import { parseBarcode } from '../barcode';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { fmtDateTime, fmtQty } from '../utils';
 
 const demoSale: Sale = {
   number: '20260705-0042',
   date: new Date().toISOString(),
   items: [
-    { productId: 1, nameFr: 'Viande hachée', nameAr: 'لحم مفروم', unit: 'kg', qty: 0.75, unitPrice: 90, total: 67.5 },
-    { productId: 2, nameFr: 'Merguez', nameAr: 'مركاز', unit: 'kg', qty: 0.5, unitPrice: 100, total: 50 },
-    { productId: 3, nameFr: 'Poulet entier', nameAr: 'دجاجة كاملة', unit: 'piece', qty: 1, unitPrice: 55, total: 55 },
+    { productId: 'demo-1', nameFr: 'Viande hachée', nameAr: 'لحم مفروم', unit: 'kg', qty: 0.75, unitPrice: 90, total: 67.5 },
+    { productId: 'demo-2', nameFr: 'Merguez', nameAr: 'مركاز', unit: 'kg', qty: 0.5, unitPrice: 100, total: 50 },
+    { productId: 'demo-3', nameFr: 'Poulet entier', nameAr: 'دجاجة كاملة', unit: 'piece', qty: 1, unitPrice: 55, total: 55 },
   ],
   subtotal: 172.5,
   discount: 2.5,
@@ -18,10 +33,143 @@ const demoSale: Sale = {
   paid: 200,
   change: 30,
   payment: 'cash',
-  userId: 1,
+  userId: 'demo-user',
   userName: 'Admin',
   status: 'done',
 };
+
+function CloudCard() {
+  const { t, lang } = useI18n();
+  const { toast } = useToast();
+  const status = useSyncExternalStore(subscribeSync, getSyncStatus);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const activate = async () => {
+    setBusy(true);
+    const err = await enableSync(password);
+    setBusy(false);
+    if (err) toast(`${t('cloudWrongPassword')}`, 'info');
+    else {
+      setPassword('');
+      toast(t('cloudConnected'));
+    }
+  };
+
+  return (
+    <div className="card card-pad" style={{ marginBottom: 14 }}>
+      <h2>☁️ {t('cloudSync')}</h2>
+      <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('cloudHint')}</p>
+      <div className="switch-row" style={{ borderBottom: 'none', paddingTop: 0 }}>
+        <span>
+          <span
+            style={{
+              display: 'inline-block', width: 10, height: 10, borderRadius: '50%', marginInlineEnd: 8,
+              background: !status.enabled ? '#a8a29e' : status.error ? 'var(--brand-500)' : 'var(--accent)',
+            }}
+          />
+          {!status.enabled ? t('cloudOff') : status.error ? `${t('cloudError')}` : t('cloudConnected')}
+        </span>
+        {status.enabled && (
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-2)' }}>
+            {status.pending > 0 && `${status.pending} ${t('pendingChanges')} · `}
+            {status.lastSync && `${t('lastSync')}: ${fmtDateTime(status.lastSync, lang)}`}
+          </span>
+        )}
+      </div>
+      {!status.enabled ? (
+        <>
+          <div className="field">
+            <label>{t('cloudPassword')} ({CLOUD_EMAIL})</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" />
+          </div>
+          <button className="btn btn-primary" disabled={!password || busy} onClick={activate}>
+            ☁️ {t('cloudEnable')}
+          </button>
+        </>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+          <button className="btn btn-ghost" disabled={status.syncing} onClick={() => void syncNow()}>
+            🔄 {t('syncNow')}
+          </button>
+          <button className="btn btn-danger" onClick={() => void disableSync()}>{t('cloudDisable')}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BarcodeCard() {
+  const { t, lang } = useI18n();
+  const { toast } = useToast();
+  const [bc, setBc] = useState<BarcodeSettings | null>(null);
+  const [test, setTest] = useState('');
+  const products = useLiveQuery(() => db.products.toArray(), []) ?? [];
+
+  useEffect(() => {
+    getBarcodeSettings().then(setBc);
+  }, []);
+  if (!bc) return null;
+
+  const up = (patch: Partial<BarcodeSettings>) => setBc({ ...bc, ...patch });
+  const testResult = test.trim() ? parseBarcode(test, bc, products) : null;
+
+  return (
+    <div className="card card-pad" style={{ marginBottom: 14 }}>
+      <h2>🏷️ {t('barcode')}</h2>
+      <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('barcodeHint')}</p>
+      <div className="switch-row">
+        <span>{t('barcodeEnable')}</span>
+        <Switch checked={bc.enabled} onChange={(v) => up({ enabled: v })} />
+      </div>
+      <div className="grid-2" style={{ marginTop: 12 }}>
+        <div className="field">
+          <label>{t('barcodePrefix')}</label>
+          <input inputMode="numeric" value={bc.prefix} onChange={(e) => up({ prefix: e.target.value.replace(/\D/g, '') })} />
+        </div>
+        <div className="field">
+          <label>{t('barcodeValueMode')}</label>
+          <div className="seg" style={{ display: 'flex' }}>
+            <button className={bc.valueMode === 'price' ? 'on' : ''} style={{ flex: 1 }} onClick={() => up({ valueMode: 'price' })}>
+              💰 {t('barcodePrice')}
+            </button>
+            <button className={bc.valueMode === 'weight' ? 'on' : ''} style={{ flex: 1 }} onClick={() => up({ valueMode: 'weight' })}>
+              ⚖️ {t('barcodeWeight')}
+            </button>
+          </div>
+        </div>
+        <div className="field">
+          <label>{t('barcodeCodeLen')}</label>
+          <input type="number" min={1} max={8} value={bc.codeLen} onChange={(e) => up({ codeLen: Math.max(1, Number(e.target.value) || 1) })} />
+        </div>
+        <div className="field">
+          <label>{t('barcodeValueLen')}</label>
+          <input type="number" min={1} max={8} value={bc.valueLen} onChange={(e) => up({ valueLen: Math.max(1, Number(e.target.value) || 1) })} />
+        </div>
+      </div>
+      <div className="field">
+        <label>{t('barcodeTest')}</label>
+        <input inputMode="numeric" value={test} onChange={(e) => setTest(e.target.value)} placeholder={t('barcodeTestPlaceholder')} />
+        {test.trim() && (
+          <div className={`change-banner ${testResult ? '' : 'warn'}`} style={{ marginTop: 8, fontSize: '1rem' }}>
+            {testResult
+              ? `✅ ${localName(testResult.product, lang)}${testResult.qty !== null ? ` — ${fmtQty(testResult.qty, testResult.product.unit)} ${testResult.product.unit === 'kg' ? t('kg') : t('piece')}` : ''}`
+              : `❌ ${t('scanUnknown')}`}
+          </div>
+        )}
+      </div>
+      <button
+        className="btn btn-primary"
+        onClick={async () => {
+          await saveBarcodeSettings(bc);
+          toast(t('settingsSaved'));
+        }}
+      >
+        💾 {t('save')}
+      </button>
+    </div>
+  );
+}
 
 export default function Settings() {
   const { t } = useI18n();
@@ -88,6 +236,8 @@ export default function Settings() {
 
       <div className="grid-2">
         <div>
+          <CloudCard />
+          <BarcodeCard />
           <div className="card card-pad" style={{ marginBottom: 14 }}>
             <h2>🏪 {t('shopInfo')}</h2>
             <div className="field">

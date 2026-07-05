@@ -1,10 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, getTicketSettings, type PaymentMethod, type Product, type Sale, type SaleItem, type User } from '../db';
+import {
+  db,
+  defaultBarcode,
+  getBarcodeSettings,
+  getTicketSettings,
+  uid,
+  type PaymentMethod,
+  type Product,
+  type Sale,
+  type SaleItem,
+  type User,
+} from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
 import { Modal, NumPad, useToast } from '../components/shared';
 import { printSaleTicket } from '../print';
+import { parseBarcode, useScanner } from '../barcode';
 
 interface CartLine extends SaleItem {
   key: number;
@@ -15,8 +27,9 @@ export default function POS({ user }: { user: User }) {
   const { toast } = useToast();
   const categories = useLiveQuery(() => db.categories.orderBy('sort').toArray(), []) ?? [];
   const products = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), []) ?? [];
+  const barcodeCfg = useLiveQuery(() => getBarcodeSettings(), []) ?? defaultBarcode;
 
-  const [catFilter, setCatFilter] = useState<number | null>(null);
+  const [catFilter, setCatFilter] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [qtyModal, setQtyModal] = useState<Product | null>(null);
@@ -35,9 +48,8 @@ export default function POS({ user }: { user: User }) {
 
   const subtotal = round2(cart.reduce((s, l) => s + l.total, 0));
 
-  const addLine = (p: Product, qty: number) => {
+  const addLine = useCallback((p: Product, qty: number) => {
     if (qty <= 0) return;
-    const unitPrice = p.price;
     setCart((c) => [
       ...c,
       {
@@ -47,17 +59,40 @@ export default function POS({ user }: { user: User }) {
         nameAr: p.nameAr,
         unit: p.unit,
         qty,
-        unitPrice,
-        total: round2(qty * unitPrice),
+        unitPrice: p.price,
+        total: round2(qty * p.price),
       },
     ]);
-  };
+  }, []);
 
-  const catColor = (id: number) => categories.find((c) => c.id === id)?.color ?? '#999';
+  const onScan = useCallback(
+    (code: string) => {
+      const res = parseBarcode(code, barcodeCfg, products);
+      setQuery('');
+      if (!res) {
+        toast(`${t('scanUnknown')} (${code})`, 'info');
+        return;
+      }
+      if (res.qty !== null) {
+        addLine(res.product, res.qty);
+        toast(`✅ ${t('scanAdded')}: ${localName(res.product, lang)}`);
+      } else if (res.product.unit === 'piece') {
+        addLine(res.product, 1);
+        toast(`✅ ${t('scanAdded')}: ${localName(res.product, lang)}`);
+      } else {
+        setQtyModal(res.product);
+      }
+    },
+    [barcodeCfg, products, addLine, toast, t, lang],
+  );
+  useScanner(onScan, barcodeCfg.enabled);
+
+  const catColor = (id: string) => categories.find((c) => c.id === id)?.color ?? '#999';
 
   const finishSale = async (payment: PaymentMethod, paid: number, discount: number) => {
     const total = round2(subtotal - discount);
     const sale: Sale = {
+      id: uid(),
       number: genTicketNumber(),
       date: todayISO(),
       items: cart.map(({ key, ...rest }) => rest),
@@ -71,14 +106,13 @@ export default function POS({ user }: { user: User }) {
       userName: user.name,
       status: 'done',
     };
-    const id = await db.transaction('rw', db.sales, db.products, async () => {
+    await db.transaction('rw', db.sales, db.products, async () => {
       for (const it of sale.items) {
         const p = await db.products.get(it.productId);
         if (p) await db.products.update(it.productId, { stock: round2(p.stock - it.qty) });
       }
-      return db.sales.add(sale);
+      await db.sales.add(sale);
     });
-    sale.id = id as number;
     setCart([]);
     setPayModal(false);
     setDoneSale(sale);

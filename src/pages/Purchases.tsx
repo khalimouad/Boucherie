@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Purchase, type PurchaseItem, type User } from '../db';
+import { db, uid, type Purchase, type PurchaseItem, type User } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, round2, todayISO } from '../utils';
 import { Empty, Modal, useToast } from '../components/shared';
@@ -19,9 +19,9 @@ export default function Purchases({ user }: { user: User }) {
   const [supPhone, setSupPhone] = useState('');
 
   // new purchase form state
-  const [supplierId, setSupplierId] = useState<number | ''>('');
+  const [supplierId, setSupplierId] = useState<string>('');
   const [note, setNote] = useState('');
-  const [lines, setLines] = useState<{ productId: number | ''; qty: string; unitCost: string }[]>([
+  const [lines, setLines] = useState<{ productId: string; qty: string; unitCost: string }[]>([
     { productId: '', qty: '', unitCost: '' },
   ]);
 
@@ -45,6 +45,7 @@ export default function Purchases({ user }: { user: User }) {
     if (parsedLines.length === 0) return toast(t('required'), 'info');
     const sup = suppliers.find((s) => s.id === supplierId);
     const purchase: Purchase = {
+      id: uid(),
       date: todayISO(),
       supplierId: sup?.id ?? null,
       supplierName: sup?.name ?? '—',
@@ -73,7 +74,7 @@ export default function Purchases({ user }: { user: User }) {
 
   const saveSupplier = async () => {
     if (!supName.trim()) return toast(t('required'), 'info');
-    await db.suppliers.add({ name: supName.trim(), phone: supPhone.trim() });
+    await db.suppliers.add({ id: uid(), name: supName.trim(), phone: supPhone.trim() });
     setSupName('');
     setSupPhone('');
     setShowSupplier(false);
@@ -135,7 +136,7 @@ export default function Purchases({ user }: { user: User }) {
         >
           <div className="field">
             <label>{t('supplier')}</label>
-            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}>
+            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
               <option value="">—</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -149,7 +150,7 @@ export default function Purchases({ user }: { user: User }) {
                 style={{ flex: 2, minWidth: 0 }}
                 value={l.productId}
                 onChange={(e) => {
-                  const productId = e.target.value ? Number(e.target.value) : '';
+                  const productId = e.target.value;
                   const p = products.find((x) => x.id === productId);
                   setLines(lines.map((x, j) => (j === i ? { ...x, productId, unitCost: x.unitCost || (p ? String(p.cost) : '') } : x)));
                 }}

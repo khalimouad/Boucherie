@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { seedIfEmpty, type Role, type User } from './db';
 import { useI18n, type TKey } from './i18n';
 import { ToastProvider } from './components/shared';
+import { getSyncStatus, initSync, subscribeSync } from './sync';
 import Login from './components/Login';
 import POS from './pages/POS';
 import Products from './pages/Products';
@@ -40,8 +41,13 @@ export default function App() {
     // never leave the app stuck on the loading screen if seeding fails
     seedIfEmpty()
       .catch((e) => console.error('seed failed', e))
-      .finally(() => setReady(true));
+      .finally(() => {
+        setReady(true);
+        initSync();
+      });
   }, []);
+
+  const sync = useSyncExternalStore(subscribeSync, getSyncStatus);
 
   if (!ready) {
     return (
@@ -100,6 +106,13 @@ export default function App() {
           <header className="topbar">
             <h1>{t(allowed.find((n) => n.id === current)!.label)}</h1>
             <div className="topbar-right">
+              <span
+                title={!sync.enabled ? t('cloudOff') : sync.error ? t('cloudError') : t('cloudConnected')}
+                style={{
+                  width: 10, height: 10, borderRadius: '50%', display: 'inline-block',
+                  background: !sync.enabled ? '#d6d3d1' : sync.error ? 'var(--brand-500)' : sync.pending > 0 ? 'var(--amber)' : 'var(--accent)',
+                }}
+              />
               <div className="lang-switch">
                 <button className={lang === 'fr' ? 'on' : ''} onClick={() => setLang('fr')}>FR</button>
                 <button className={lang === 'ar' ? 'on' : ''} onClick={() => setLang('ar')}>ع</button>

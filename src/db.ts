@@ -1,20 +1,27 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { nowMs, uid } from './utils';
 
 export type Role = 'admin' | 'manager' | 'cashier';
 export type Unit = 'kg' | 'piece';
 export type PaymentMethod = 'cash' | 'card' | 'credit';
 export type WasteReason = 'bones' | 'fat' | 'spoiled' | 'trim' | 'expired' | 'other';
 
-export interface User {
-  id?: number;
+/** Fields injected on every synced row by the sync middleware. */
+interface Synced {
+  updatedAt?: string;
+  _dirty?: number;
+}
+
+export interface User extends Synced {
+  id?: string;
   name: string;
   pinHash: string;
   role: Role;
   active: boolean;
 }
 
-export interface Category {
-  id?: number;
+export interface Category extends Synced {
+  id?: string;
   nameFr: string;
   nameAr: string;
   color: string;
@@ -22,9 +29,9 @@ export interface Category {
   sort: number;
 }
 
-export interface Product {
-  id?: number;
-  categoryId: number;
+export interface Product extends Synced {
+  id?: string;
+  categoryId: string;
   nameFr: string;
   nameAr: string;
   unit: Unit;
@@ -32,17 +39,18 @@ export interface Product {
   cost: number; // last purchase cost
   stock: number; // in kg or pieces
   lowStock: number;
+  code: string; // scale PLU / barcode item code (digits)
   active: boolean;
 }
 
-export interface Supplier {
-  id?: number;
+export interface Supplier extends Synced {
+  id?: string;
   name: string;
   phone: string;
 }
 
 export interface PurchaseItem {
-  productId: number;
+  productId: string;
   nameFr: string;
   nameAr: string;
   qty: number;
@@ -50,20 +58,20 @@ export interface PurchaseItem {
   total: number;
 }
 
-export interface Purchase {
-  id?: number;
+export interface Purchase extends Synced {
+  id?: string;
   date: string; // ISO
-  supplierId: number | null;
+  supplierId: string | null;
   supplierName: string;
   items: PurchaseItem[];
   total: number;
-  userId: number;
+  userId: string;
   userName: string;
   note: string;
 }
 
 export interface SaleItem {
-  productId: number;
+  productId: string;
   nameFr: string;
   nameAr: string;
   unit: Unit;
@@ -72,8 +80,8 @@ export interface SaleItem {
   total: number;
 }
 
-export interface Sale {
-  id?: number;
+export interface Sale extends Synced {
+  id?: string;
   number: string;
   date: string; // ISO
   items: SaleItem[];
@@ -83,15 +91,15 @@ export interface Sale {
   paid: number;
   change: number;
   payment: PaymentMethod;
-  userId: number;
+  userId: string;
   userName: string;
   status: 'done' | 'void';
 }
 
-export interface Waste {
-  id?: number;
+export interface Waste extends Synced {
+  id?: string;
   date: string; // ISO
-  productId: number;
+  productId: string;
   nameFr: string;
   nameAr: string;
   unit: Unit;
@@ -100,16 +108,28 @@ export interface Waste {
   value: number;
   reason: WasteReason;
   note: string;
-  userId: number;
+  userId: string;
   userName: string;
 }
 
-export interface Setting {
+export interface Setting extends Synced {
   key: string;
   value: string;
 }
 
-export const db = new Dexie('boucherie-pos') as Dexie & {
+export const SYNCED_TABLES = [
+  'users',
+  'categories',
+  'products',
+  'suppliers',
+  'purchases',
+  'sales',
+  'waste',
+  'settings',
+] as const;
+export type SyncedTable = (typeof SYNCED_TABLES)[number];
+
+export const db = new Dexie('boucherie-pos-2') as Dexie & {
   users: EntityTable<User, 'id'>;
   categories: EntityTable<Category, 'id'>;
   products: EntityTable<Product, 'id'>;
@@ -121,14 +141,80 @@ export const db = new Dexie('boucherie-pos') as Dexie & {
 };
 
 db.version(1).stores({
-  users: '++id, name, role',
-  categories: '++id, sort',
-  products: '++id, categoryId, nameFr, active',
-  suppliers: '++id, name',
-  purchases: '++id, date, supplierId',
-  sales: '++id, date, number, userId',
-  waste: '++id, date, productId, reason',
+  users: 'id, name, role',
+  categories: 'id, sort',
+  products: 'id, categoryId, nameFr, active',
+  suppliers: 'id, name',
+  purchases: 'id, date, supplierId',
+  sales: 'id, date, number, userId',
+  waste: 'id, date, productId, reason',
   settings: 'key',
+});
+
+/* ---- sync change tracking ----
+   A DBCore middleware stamps every local write with updatedAt + _dirty so the
+   sync engine knows what to push. Writes performed while applying remote
+   changes (applyingRemote) are left untouched. Local deletions are recorded
+   as tombstones in localStorage (survives reload, no extra transaction). */
+
+export let applyingRemote = false;
+export function setApplyingRemote(v: boolean) {
+  applyingRemote = v;
+}
+
+const TOMB_KEY = 'pos-tombstones';
+export interface Tombstone {
+  tbl: SyncedTable;
+  id: string;
+}
+
+export function getTombstones(): Tombstone[] {
+  try {
+    return JSON.parse(localStorage.getItem(TOMB_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function setTombstones(t: Tombstone[]) {
+  localStorage.setItem(TOMB_KEY, JSON.stringify(t));
+}
+
+function recordTombstones(tbl: SyncedTable, keys: unknown[]) {
+  const cur = getTombstones();
+  for (const k of keys) cur.push({ tbl, id: String(k) });
+  setTombstones(cur);
+}
+
+db.use({
+  stack: 'dbcore',
+  name: 'sync-tracker',
+  create(down) {
+    return {
+      ...down,
+      table(name) {
+        const table = down.table(name);
+        if (!(SYNCED_TABLES as readonly string[]).includes(name)) return table;
+        return {
+          ...table,
+          mutate(req) {
+            if (!applyingRemote) {
+              if (req.type === 'add' || req.type === 'put') {
+                const stamp = new Date(nowMs()).toISOString();
+                for (const v of req.values as Record<string, unknown>[]) {
+                  v.updatedAt = stamp;
+                  v._dirty = 1;
+                }
+              } else if (req.type === 'delete') {
+                recordTombstones(name as SyncedTable, req.keys);
+              }
+            }
+            return table.mutate(req);
+          },
+        };
+      },
+    };
+  },
 });
 
 export async function hashPin(pin: string): Promise<string> {
@@ -148,6 +234,8 @@ export async function hashPin(pin: string): Promise<string> {
   const { sha256Hex } = await import('./sha256');
   return sha256Hex(data);
 }
+
+/* ---- JSON settings helpers ---- */
 
 export interface TicketSettings {
   shopNameFr: string;
@@ -189,19 +277,43 @@ export const defaultTicket: TicketSettings = {
   ticketLang: 'both',
 };
 
-export async function getTicketSettings(): Promise<TicketSettings> {
-  const row = await db.settings.get('ticket');
-  if (!row) return { ...defaultTicket };
+/** Scale barcode layout: [prefix][item code][value][EAN check digit]. */
+export interface BarcodeSettings {
+  enabled: boolean;
+  prefix: string; // e.g. '2' or '20'
+  codeLen: number; // digits of the product code
+  valueLen: number; // digits of the embedded value
+  valueMode: 'price' | 'weight'; // price in centimes or weight in grams
+}
+
+export const defaultBarcode: BarcodeSettings = {
+  enabled: true,
+  prefix: '2',
+  codeLen: 5,
+  valueLen: 5,
+  valueMode: 'price',
+};
+
+async function getJsonSetting<T>(key: string, fallback: T): Promise<T> {
+  const row = await db.settings.get(key);
+  if (!row) return { ...fallback };
   try {
-    return { ...defaultTicket, ...JSON.parse(row.value) };
+    return { ...fallback, ...JSON.parse(row.value) };
   } catch {
-    return { ...defaultTicket };
+    return { ...fallback };
   }
 }
 
-export async function saveTicketSettings(t: TicketSettings) {
-  await db.settings.put({ key: 'ticket', value: JSON.stringify(t) });
-}
+export const getTicketSettings = () => getJsonSetting('ticket', defaultTicket);
+export const saveTicketSettings = (t: TicketSettings) => db.settings.put({ key: 'ticket', value: JSON.stringify(t) });
+export const getBarcodeSettings = () => getJsonSetting('barcode', defaultBarcode);
+export const saveBarcodeSettings = (b: BarcodeSettings) => db.settings.put({ key: 'barcode', value: JSON.stringify(b) });
+
+/* ---- seed ----
+   Seed ids are fixed so that two freshly-installed devices that later join the
+   same cloud converge on the same rows instead of duplicating the catalog. */
+
+const sid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
 let seeded = false;
 export async function seedIfEmpty() {
@@ -210,40 +322,45 @@ export async function seedIfEmpty() {
   const userCount = await db.users.count();
   if (userCount > 0) return;
 
-  await db.users.add({ name: 'Admin', pinHash: await hashPin('1234'), role: 'admin', active: true });
-  await db.users.add({ name: 'Caissier', pinHash: await hashPin('0000'), role: 'cashier', active: true });
+  await db.users.bulkAdd([
+    { id: sid(1), name: 'Admin', pinHash: await hashPin('1234'), role: 'admin', active: true },
+    { id: sid(2), name: 'Caissier', pinHash: await hashPin('0000'), role: 'cashier', active: true },
+  ] as User[]);
 
   const cats: Category[] = [
-    { nameFr: 'Bœuf', nameAr: 'لحم البقر', color: '#b91c1c', icon: '🥩', sort: 1 },
-    { nameFr: 'Agneau', nameAr: 'لحم الغنم', color: '#c2410c', icon: '🍖', sort: 2 },
-    { nameFr: 'Poulet', nameAr: 'الدجاج', color: '#ca8a04', icon: '🍗', sort: 3 },
-    { nameFr: 'Abats', nameAr: 'الأحشاء', color: '#7e22ce', icon: '🫀', sort: 4 },
-    { nameFr: 'Préparations', nameAr: 'المحضرات', color: '#15803d', icon: '🥓', sort: 5 },
+    { id: sid(101), nameFr: 'Bœuf', nameAr: 'لحم البقر', color: '#b91c1c', icon: '🥩', sort: 1 },
+    { id: sid(102), nameFr: 'Agneau', nameAr: 'لحم الغنم', color: '#c2410c', icon: '🍖', sort: 2 },
+    { id: sid(103), nameFr: 'Poulet', nameAr: 'الدجاج', color: '#ca8a04', icon: '🍗', sort: 3 },
+    { id: sid(104), nameFr: 'Abats', nameAr: 'الأحشاء', color: '#7e22ce', icon: '🫀', sort: 4 },
+    { id: sid(105), nameFr: 'Préparations', nameAr: 'المحضرات', color: '#15803d', icon: '🥓', sort: 5 },
   ];
-  const catIds: number[] = [];
-  for (const c of cats) catIds.push((await db.categories.add(c)) as number);
+  await db.categories.bulkAdd(cats);
 
-  const prods: Omit<Product, 'id'>[] = [
-    { categoryId: catIds[0], nameFr: 'Viande hachée', nameAr: 'لحم مفروم', unit: 'kg', price: 90, cost: 68, stock: 12, lowStock: 3, active: true },
-    { categoryId: catIds[0], nameFr: 'Entrecôte', nameAr: 'أنتركوت', unit: 'kg', price: 120, cost: 92, stock: 8, lowStock: 2, active: true },
-    { categoryId: catIds[0], nameFr: 'Filet de bœuf', nameAr: 'فيليه البقر', unit: 'kg', price: 160, cost: 125, stock: 5, lowStock: 2, active: true },
-    { categoryId: catIds[0], nameFr: 'Jarret', nameAr: 'موزات', unit: 'kg', price: 75, cost: 55, stock: 10, lowStock: 3, active: true },
-    { categoryId: catIds[1], nameFr: 'Gigot d’agneau', nameAr: 'فخذ الغنم', unit: 'kg', price: 110, cost: 85, stock: 9, lowStock: 2, active: true },
-    { categoryId: catIds[1], nameFr: 'Côtelettes', nameAr: 'قطبان الضلوع', unit: 'kg', price: 115, cost: 88, stock: 7, lowStock: 2, active: true },
-    { categoryId: catIds[1], nameFr: 'Épaule', nameAr: 'كتف الغنم', unit: 'kg', price: 95, cost: 72, stock: 6, lowStock: 2, active: true },
-    { categoryId: catIds[2], nameFr: 'Poulet entier', nameAr: 'دجاجة كاملة', unit: 'piece', price: 55, cost: 40, stock: 15, lowStock: 4, active: true },
-    { categoryId: catIds[2], nameFr: 'Escalope', nameAr: 'إسكالوب', unit: 'kg', price: 62, cost: 45, stock: 10, lowStock: 3, active: true },
-    { categoryId: catIds[2], nameFr: 'Cuisses', nameAr: 'أفخاذ الدجاج', unit: 'kg', price: 38, cost: 26, stock: 12, lowStock: 3, active: true },
-    { categoryId: catIds[3], nameFr: 'Foie', nameAr: 'الكبدة', unit: 'kg', price: 130, cost: 100, stock: 4, lowStock: 1, active: true },
-    { categoryId: catIds[3], nameFr: 'Cœur', nameAr: 'القلب', unit: 'kg', price: 85, cost: 62, stock: 3, lowStock: 1, active: true },
-    { categoryId: catIds[4], nameFr: 'Kefta préparée', nameAr: 'كفتة محضرة', unit: 'kg', price: 95, cost: 70, stock: 8, lowStock: 2, active: true },
-    { categoryId: catIds[4], nameFr: 'Merguez', nameAr: 'مركاز', unit: 'kg', price: 100, cost: 74, stock: 6, lowStock: 2, active: true },
-    { categoryId: catIds[4], nameFr: 'Brochettes', nameAr: 'قطبان مشوية', unit: 'kg', price: 105, cost: 78, stock: 5, lowStock: 2, active: true },
-  ];
-  await db.products.bulkAdd(prods as Product[]);
+  const p = (n: number, categoryId: string, nameFr: string, nameAr: string, unit: Unit, price: number, cost: number, stock: number, lowStock: number, code: string): Product => ({
+    id: sid(n), categoryId, nameFr, nameAr, unit, price, cost, stock, lowStock, code, active: true,
+  });
+  await db.products.bulkAdd([
+    p(201, sid(101), 'Viande hachée', 'لحم مفروم', 'kg', 90, 68, 12, 3, '201'),
+    p(202, sid(101), 'Entrecôte', 'أنتركوت', 'kg', 120, 92, 8, 2, '202'),
+    p(203, sid(101), 'Filet de bœuf', 'فيليه البقر', 'kg', 160, 125, 5, 2, '203'),
+    p(204, sid(101), 'Jarret', 'موزات', 'kg', 75, 55, 10, 3, '204'),
+    p(205, sid(102), 'Gigot d’agneau', 'فخذ الغنم', 'kg', 110, 85, 9, 2, '205'),
+    p(206, sid(102), 'Côtelettes', 'قطبان الضلوع', 'kg', 115, 88, 7, 2, '206'),
+    p(207, sid(102), 'Épaule', 'كتف الغنم', 'kg', 95, 72, 6, 2, '207'),
+    p(208, sid(103), 'Poulet entier', 'دجاجة كاملة', 'piece', 55, 40, 15, 4, '208'),
+    p(209, sid(103), 'Escalope', 'إسكالوب', 'kg', 62, 45, 10, 3, '209'),
+    p(210, sid(103), 'Cuisses', 'أفخاذ الدجاج', 'kg', 38, 26, 12, 3, '210'),
+    p(211, sid(104), 'Foie', 'الكبدة', 'kg', 130, 100, 4, 1, '211'),
+    p(212, sid(104), 'Cœur', 'القلب', 'kg', 85, 62, 3, 1, '212'),
+    p(213, sid(105), 'Kefta préparée', 'كفتة محضرة', 'kg', 95, 70, 8, 2, '213'),
+    p(214, sid(105), 'Merguez', 'مركاز', 'kg', 100, 74, 6, 2, '214'),
+    p(215, sid(105), 'Brochettes', 'قطبان مشوية', 'kg', 105, 78, 5, 2, '215'),
+  ]);
 
   await db.suppliers.bulkAdd([
-    { name: 'Abattoir Municipal', phone: '05 22 11 22 33' },
-    { name: 'Ferme Atlas Volailles', phone: '06 61 44 55 66' },
+    { id: sid(301), name: 'Abattoir Municipal', phone: '05 22 11 22 33' },
+    { id: sid(302), name: 'Ferme Atlas Volailles', phone: '06 61 44 55 66' },
   ] as Supplier[]);
 }
+
+export { uid };

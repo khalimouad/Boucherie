@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Category, type Product, type Unit } from '../db';
+import { db, uid, type Category, type Product, type Unit } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtQty } from '../utils';
 import { Empty, Modal, useToast } from '../components/shared';
@@ -25,7 +25,7 @@ export default function Products() {
     return products.filter((p) => p.nameFr.toLowerCase().includes(q) || p.nameAr.includes(q));
   }, [products, query]);
 
-  const catName = (id: number) => {
+  const catName = (id: string) => {
     const c = categories.find((x) => x.id === id);
     return c ? `${c.icon} ${localName(c, lang)}` : '—';
   };
@@ -41,10 +41,11 @@ export default function Products() {
       cost: Number(editProd.cost) || 0,
       stock: Number(editProd.stock) || 0,
       lowStock: Number(editProd.lowStock) || 0,
+      code: (editProd.code ?? '').replace(/\D/g, ''),
       active: editProd.active ?? true,
     };
     if (editProd.id) await db.products.update(editProd.id, data);
-    else await db.products.add(data as Product);
+    else await db.products.add({ ...data, id: uid() } as Product);
     setEditProd(null);
     toast(t('settingsSaved'));
   };
@@ -59,7 +60,7 @@ export default function Products() {
       sort: editCat.sort ?? categories.length + 1,
     };
     if (editCat.id) await db.categories.update(editCat.id, data);
-    else await db.categories.add(data as Category);
+    else await db.categories.add({ ...data, id: uid() } as Category);
     setEditCat(null);
     toast(t('settingsSaved'));
   };
@@ -201,7 +202,7 @@ export default function Products() {
             </div>
             <div className="field">
               <label>{t('category')} *</label>
-              <select value={editProd.categoryId ?? ''} onChange={(e) => setEditProd({ ...editProd, categoryId: Number(e.target.value) })}>
+              <select value={editProd.categoryId ?? ''} onChange={(e) => setEditProd({ ...editProd, categoryId: e.target.value })}>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.icon} {localName(c, lang)}</option>
                 ))}
@@ -229,6 +230,10 @@ export default function Products() {
             <div className="field">
               <label>{t('lowStock')}</label>
               <input inputMode="decimal" type="number" step="0.001" value={editProd.lowStock ?? ''} onChange={(e) => setEditProd({ ...editProd, lowStock: parseFloat(e.target.value) })} />
+            </div>
+            <div className="field">
+              <label>{t('productCode')}</label>
+              <input inputMode="numeric" value={editProd.code ?? ''} onChange={(e) => setEditProd({ ...editProd, code: e.target.value })} placeholder="ex: 201" />
             </div>
           </div>
           <div className="switch-row">

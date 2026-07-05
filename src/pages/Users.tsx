@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, hashPin, type Role, type User } from '../db';
+import { db, hashPin, uid, type Role, type User } from '../db';
 import { useI18n } from '../i18n';
 import { Empty, Modal, useToast } from '../components/shared';
 
@@ -22,7 +22,7 @@ export default function Users({ currentUser }: { currentUser: User }) {
       active: edit.active ?? true,
     };
     if (isNew) {
-      await db.users.add({ ...base, pinHash: await hashPin(edit.newPin!) } as User);
+      await db.users.add({ ...base, id: uid(), pinHash: await hashPin(edit.newPin!) } as User);
     } else {
       const patch: Partial<User> = { ...base };
       if (edit.newPin) patch.pinHash = await hashPin(edit.newPin);

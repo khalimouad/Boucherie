@@ -1,1 +1,0 @@
-{"root":["./src/App.tsx","./src/db.ts","./src/i18n.tsx","./src/main.tsx","./src/print.ts","./src/sha256.ts","./src/utils.ts","./src/components/Login.tsx","./src/components/shared.tsx","./src/pages/POS.tsx","./src/pages/Products.tsx","./src/pages/Purchases.tsx","./src/pages/Reports.tsx","./src/pages/Settings.tsx","./src/pages/Users.tsx","./src/pages/Waste.tsx"],"version":"5.9.3"}

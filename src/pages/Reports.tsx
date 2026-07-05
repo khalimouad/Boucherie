@@ -42,7 +42,7 @@ export default function Reports() {
   const products = useLiveQuery(() => db.products.toArray(), []) ?? [];
   const productsMap = useMemo(() => new Map(products.map((p) => [p.id!, p])), [products]);
   // approximate cost of goods sold using current product cost
-  const costOf = (productId: number): number => productsMap.get(productId)?.cost ?? 0;
+  const costOf = (productId: string): number => productsMap.get(productId)?.cost ?? 0;
 
   const doneSales = sales.filter((s) => s.status === 'done');
   const revenue = round2(doneSales.reduce((s, x) => s + x.total, 0));
@@ -53,7 +53,7 @@ export default function Reports() {
 
   /* aggregations */
   const byProduct = useMemo(() => {
-    const m = new Map<number, { nameFr: string; nameAr: string; qty: number; total: number; unit: 'kg' | 'piece' }>();
+    const m = new Map<string, { nameFr: string; nameAr: string; qty: number; total: number; unit: 'kg' | 'piece' }>();
     for (const s of doneSales)
       for (const it of s.items) {
         const cur = m.get(it.productId) ?? { nameFr: it.nameFr, nameAr: it.nameAr, qty: 0, total: 0, unit: it.unit };
@@ -82,7 +82,7 @@ export default function Reports() {
   }, [doneSales]);
 
   const wasteByProduct = useMemo(() => {
-    const m = new Map<number, { nameFr: string; nameAr: string; qty: number; value: number; unit: 'kg' | 'piece' }>();
+    const m = new Map<string, { nameFr: string; nameAr: string; qty: number; value: number; unit: 'kg' | 'piece' }>();
     for (const w of waste) {
       const cur = m.get(w.productId) ?? { nameFr: w.nameFr, nameAr: w.nameAr, qty: 0, value: 0, unit: w.unit };
       cur.qty += w.qty;

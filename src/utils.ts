@@ -6,7 +6,7 @@ export function fmtDH(n: number, lang: Lang = 'fr'): string {
   const [int, dec] = v.split('.');
   const sign = int.startsWith('-') ? '-' : '';
   const digits = sign ? int.slice(1) : int;
-  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   const num = `${sign}${grouped},${dec}`;
   return lang === 'ar' ? `${num} د.م.` : `${num} DH`;
 }
@@ -21,11 +21,47 @@ export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-export function todayISO(): string {
-  return new Date().toISOString();
+/** Random id, safe outside secure contexts (crypto.randomUUID needs HTTPS). */
+export function uid(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    try {
+      return crypto.randomUUID();
+    } catch {
+      /* fall through */
+    }
+  }
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-export function startOfDay(d = new Date()): Date {
+/* ---- clock correction ----
+   The shop till's clock can be wrong (one photo showed year 2001). The sync
+   layer measures the offset against the server clock and we apply it to every
+   timestamp we generate. */
+const OFFSET_KEY = 'pos-clock-offset';
+
+export function setClockOffset(ms: number) {
+  localStorage.setItem(OFFSET_KEY, String(Math.round(ms)));
+}
+
+export function getClockOffset(): number {
+  const v = Number(localStorage.getItem(OFFSET_KEY));
+  return Number.isFinite(v) ? v : 0;
+}
+
+export function nowMs(): number {
+  return Date.now() + getClockOffset();
+}
+
+export function todayISO(): string {
+  return new Date(nowMs()).toISOString();
+}
+
+export function startOfDay(d = new Date(nowMs())): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x;
@@ -61,7 +97,7 @@ export function fmtDate(iso: string, lang: Lang): string {
 }
 
 export function genTicketNumber(): string {
-  const d = new Date();
+  const d = new Date(nowMs());
   const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
   const rnd = Math.floor(Math.random() * 10000)
     .toString()
