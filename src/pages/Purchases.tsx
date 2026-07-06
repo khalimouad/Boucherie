@@ -3,12 +3,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, uid, type Purchase, type PurchaseItem, type User } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, round2, todayISO } from '../utils';
-import { Empty, Modal, useToast } from '../components/shared';
+import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
 
 export default function Purchases({ user }: { user: User }) {
   const { t, lang } = useI18n();
   const { toast } = useToast();
-  const purchases = useLiveQuery(() => db.purchases.orderBy('date').reverse().limit(100).toArray(), []) ?? [];
+  const purchasesRaw = useLiveQuery(() => db.purchases.orderBy('date').reverse().limit(100).toArray(), []);
+  const purchases = purchasesRaw ?? [];
   const suppliers = useLiveQuery(() => db.suppliers.toArray(), []) ?? [];
   const products = useLiveQuery(() => db.products.toArray(), []) ?? [];
 
@@ -92,14 +93,16 @@ export default function Purchases({ user }: { user: User }) {
       </div>
 
       <div className="card table-wrap">
-        {purchases.length === 0 ? (
+        {purchasesRaw === undefined ? (
+          <TableSkeleton />
+        ) : purchases.length === 0 ? (
           <Empty icon="🚚" />
         ) : (
-          <table className="data">
+          <table className="data card-table">
             <thead>
               <tr>
-                <th>{t('date')}</th>
                 <th>{t('supplier')}</th>
+                <th>{t('date')}</th>
                 <th>{t('items')}</th>
                 <th className="num">{t('total')}</th>
                 <th>{t('user')}</th>
@@ -108,11 +111,11 @@ export default function Purchases({ user }: { user: User }) {
             <tbody>
               {purchases.map((p) => (
                 <tr key={p.id} className="clickable" onClick={() => setDetail(p)}>
-                  <td>{fmtDateTime(p.date, lang)}</td>
-                  <td><strong>{p.supplierName}</strong></td>
-                  <td>{p.items.length}</td>
-                  <td className="num"><strong>{fmtDH(p.total, lang)}</strong></td>
-                  <td>{p.userName}</td>
+                  <td className="card-title">{p.supplierName}</td>
+                  <td data-label={t('date')}>{fmtDateTime(p.date, lang)}</td>
+                  <td data-label={t('items')}>{p.items.length}</td>
+                  <td className="num" data-label={t('total')}><strong>{fmtDH(p.total, lang)}</strong></td>
+                  <td data-label={t('user')}>{p.userName}</td>
                 </tr>
               ))}
             </tbody>
@@ -174,7 +177,13 @@ export default function Purchases({ user }: { user: User }) {
                 value={l.unitCost}
                 onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, unitCost: e.target.value } : x)))}
               />
-              <button className="cl-del" onClick={() => setLines(lines.length > 1 ? lines.filter((_, j) => j !== i) : lines)}>🗑</button>
+              <button
+                className="btn-icon btn-icon-danger"
+                aria-label={t('delete')}
+                onClick={() => setLines(lines.length > 1 ? lines.filter((_, j) => j !== i) : lines)}
+              >
+                🗑
+              </button>
             </div>
           ))}
           <button className="btn btn-ghost btn-sm" onClick={() => setLines([...lines, { productId: '', qty: '', unitCost: '' }])}>

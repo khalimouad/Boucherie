@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, uid, type User, type Waste as WasteRow, type WasteReason } from '../db';
 import { localName, useI18n, type TKey } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, round2, startOfDay, todayISO } from '../utils';
-import { Empty, Modal, useToast } from '../components/shared';
+import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
 
 export const REASONS: { id: WasteReason; key: TKey; icon: string }[] = [
   { id: 'bones', key: 'rBones', icon: '🦴' },
@@ -17,7 +17,8 @@ export const REASONS: { id: WasteReason; key: TKey; icon: string }[] = [
 export default function Waste({ user }: { user: User }) {
   const { t, lang } = useI18n();
   const { toast } = useToast();
-  const rows = useLiveQuery(() => db.waste.orderBy('date').reverse().limit(200).toArray(), []) ?? [];
+  const rowsRaw = useLiveQuery(() => db.waste.orderBy('date').reverse().limit(200).toArray(), []);
+  const rows = rowsRaw ?? [];
   const products = useLiveQuery(() => db.products.toArray(), []) ?? [];
 
   const [show, setShow] = useState(false);
@@ -88,14 +89,16 @@ export default function Waste({ user }: { user: User }) {
       </div>
 
       <div className="card table-wrap">
-        {rows.length === 0 ? (
+        {rowsRaw === undefined ? (
+          <TableSkeleton />
+        ) : rows.length === 0 ? (
           <Empty icon="⚖️" />
         ) : (
-          <table className="data">
+          <table className="data card-table">
             <thead>
               <tr>
-                <th>{t('date')}</th>
                 <th>{t('product')}</th>
+                <th>{t('date')}</th>
                 <th className="num">{t('quantity')}</th>
                 <th>{t('reason')}</th>
                 <th className="num">{t('wasteValue')}</th>
@@ -105,12 +108,12 @@ export default function Waste({ user }: { user: User }) {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td>{fmtDateTime(r.date, lang)}</td>
-                  <td><strong>{localName(r, lang)}</strong>{r.note && <div style={{ fontSize: '0.8rem', color: 'var(--text-2)' }}>{r.note}</div>}</td>
-                  <td className="num">{fmtQty(r.qty, r.unit)} {r.unit === 'kg' ? t('kg') : ''}</td>
-                  <td><span className="badge red">{reasonLabel(r.reason)}</span></td>
-                  <td className="num"><strong>{fmtDH(r.value, lang)}</strong></td>
-                  <td>{r.userName}</td>
+                  <td className="card-title">{localName(r, lang)}{r.note && <div style={{ fontSize: '0.8rem', color: 'var(--ink-2)', fontWeight: 400 }}>{r.note}</div>}</td>
+                  <td data-label={t('date')}>{fmtDateTime(r.date, lang)}</td>
+                  <td className="num" data-label={t('quantity')}>{fmtQty(r.qty, r.unit)} {r.unit === 'kg' ? t('kg') : ''}</td>
+                  <td data-label={t('reason')}><span className="badge red">{reasonLabel(r.reason)}</span></td>
+                  <td className="num" data-label={t('wasteValue')}><strong>{fmtDH(r.value, lang)}</strong></td>
+                  <td data-label={t('user')}>{r.userName}</td>
                 </tr>
               ))}
             </tbody>

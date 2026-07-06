@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, uid, type Category, type Product, type Unit } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtQty } from '../utils';
-import { Empty, Modal, useToast } from '../components/shared';
+import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
 
 const COLORS = ['#b91c1c', '#c2410c', '#ca8a04', '#15803d', '#0e7490', '#1d4ed8', '#7e22ce', '#be185d'];
 const ICONS = ['🥩', '🍖', '🍗', '🫀', '🥓', '🐄', '🐑', '🐔', '🦃', '🌭', '🍢', '🧆'];
@@ -11,8 +11,10 @@ const ICONS = ['🥩', '🍖', '🍗', '🫀', '🥓', '🐄', '🐑', '🐔', '
 export default function Products() {
   const { t, lang } = useI18n();
   const { toast } = useToast();
-  const categories = useLiveQuery(() => db.categories.orderBy('sort').toArray(), []) ?? [];
-  const products = useLiveQuery(() => db.products.toArray(), []) ?? [];
+  const categoriesRaw = useLiveQuery(() => db.categories.orderBy('sort').toArray(), []);
+  const productsRaw = useLiveQuery(() => db.products.toArray(), []);
+  const categories = categoriesRaw ?? [];
+  const products = productsRaw ?? [];
 
   const [tab, setTab] = useState<'products' | 'categories'>('products');
   const [query, setQuery] = useState('');
@@ -89,10 +91,12 @@ export default function Products() {
             <input placeholder={t('search')} value={query} onChange={(e) => setQuery(e.target.value)} style={{ minWidth: 220 }} />
           </div>
           <div className="card table-wrap">
-            {visible.length === 0 ? (
+            {productsRaw === undefined ? (
+              <TableSkeleton />
+            ) : visible.length === 0 ? (
               <Empty icon="🥩" />
             ) : (
-              <table className="data">
+              <table className="data card-table">
                 <thead>
                   <tr>
                     <th>{t('product')}</th>
@@ -107,22 +111,23 @@ export default function Products() {
                 <tbody>
                   {visible.map((p) => (
                     <tr key={p.id}>
-                      <td>
+                      <td className="card-title">
                         <strong>{localName(p, lang)}</strong>
                         {!p.active && <span className="badge gray" style={{ marginInlineStart: 6 }}>{t('inactive')}</span>}
                       </td>
-                      <td>{catName(p.categoryId)}</td>
-                      <td>{p.unit === 'kg' ? t('kg') : t('piece')}</td>
-                      <td className="num">{fmtDH(p.price, lang)}</td>
-                      <td className="num">{fmtDH(p.cost, lang)}</td>
-                      <td className="num">
+                      <td data-label={t('category')}>{catName(p.categoryId)}</td>
+                      <td data-label={t('unit')}>{p.unit === 'kg' ? t('kg') : t('piece')}</td>
+                      <td className="num" data-label={t('sellPrice')}>{fmtDH(p.price, lang)}</td>
+                      <td className="num" data-label={t('costPrice')}>{fmtDH(p.cost, lang)}</td>
+                      <td className="num" data-label={t('stock')}>
                         {fmtQty(p.stock, p.unit)}{' '}
                         {p.stock <= p.lowStock && <span className="badge amber">{t('lowStockAlert')}</span>}
                       </td>
-                      <td>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setEditProd(p)}>✏️</button>{' '}
+                      <td className="card-actions">
+                        <button className="btn-icon sm" onClick={() => setEditProd(p)} aria-label={t('edit')}>✏️</button>{' '}
                         <button
-                          className="btn btn-danger btn-sm"
+                          className="btn-icon sm btn-icon-danger"
+                          aria-label={t('delete')}
                           onClick={async () => {
                             if (confirm(t('confirmDelete'))) await db.products.delete(p.id!);
                           }}
@@ -141,14 +146,16 @@ export default function Products() {
 
       {tab === 'categories' && (
         <div className="card table-wrap">
-          {categories.length === 0 ? (
+          {categoriesRaw === undefined ? (
+            <TableSkeleton />
+          ) : categories.length === 0 ? (
             <Empty icon="🗂" />
           ) : (
-            <table className="data">
+            <table className="data card-table">
               <thead>
                 <tr>
-                  <th>{t('icon')}</th>
                   <th>{t('nameFr')}</th>
+                  <th>{t('icon')}</th>
                   <th>{t('nameAr')}</th>
                   <th>{t('color')}</th>
                   <th>{t('actions')}</th>
@@ -157,14 +164,15 @@ export default function Products() {
               <tbody>
                 {categories.map((c) => (
                   <tr key={c.id}>
-                    <td style={{ fontSize: '1.4rem' }}>{c.icon}</td>
-                    <td><strong>{c.nameFr}</strong></td>
-                    <td dir="rtl">{c.nameAr}</td>
-                    <td><span style={{ display: 'inline-block', width: 26, height: 26, borderRadius: 8, background: c.color }} /></td>
-                    <td>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setEditCat(c)}>✏️</button>{' '}
+                    <td className="card-title">{c.nameFr}</td>
+                    <td data-label={t('icon')} style={{ fontSize: '1.4rem' }}>{c.icon}</td>
+                    <td data-label={t('nameAr')} dir="rtl">{c.nameAr}</td>
+                    <td data-label={t('color')}><span style={{ display: 'inline-block', width: 26, height: 26, borderRadius: 8, background: c.color }} /></td>
+                    <td className="card-actions">
+                      <button className="btn-icon sm" onClick={() => setEditCat(c)} aria-label={t('edit')}>✏️</button>{' '}
                       <button
-                        className="btn btn-danger btn-sm"
+                        className="btn-icon sm btn-icon-danger"
+                        aria-label={t('delete')}
                         onClick={async () => {
                           if (confirm(t('confirmDelete'))) await db.categories.delete(c.id!);
                         }}
@@ -289,8 +297,8 @@ export default function Products() {
                 <button
                   key={c}
                   style={{
-                    width: 42,
-                    height: 42,
+                    width: 48,
+                    height: 48,
                     borderRadius: 12,
                     background: c,
                     border: editCat.color === c ? '3px solid var(--text)' : '3px solid transparent',

@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, hashPin, uid, type Role, type User } from '../db';
 import { useI18n } from '../i18n';
-import { Empty, Modal, useToast } from '../components/shared';
+import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
 
 export default function Users({ currentUser }: { currentUser: User }) {
   const { t } = useI18n();
   const { toast } = useToast();
-  const users = useLiveQuery(() => db.users.toArray(), []) ?? [];
+  const usersRaw = useLiveQuery(() => db.users.toArray(), []);
+  const users = usersRaw ?? [];
   const [edit, setEdit] = useState<(Partial<User> & { newPin?: string }) | null>(null);
 
   const save = async () => {
@@ -52,10 +53,12 @@ export default function Users({ currentUser }: { currentUser: User }) {
       </div>
 
       <div className="card table-wrap">
-        {users.length === 0 ? (
+        {usersRaw === undefined ? (
+          <TableSkeleton />
+        ) : users.length === 0 ? (
           <Empty icon="👥" />
         ) : (
-          <table className="data">
+          <table className="data card-table">
             <thead>
               <tr>
                 <th>{t('name')}</th>
@@ -67,13 +70,13 @@ export default function Users({ currentUser }: { currentUser: User }) {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td><strong>{u.name}</strong> {u.id === currentUser.id && '⭐'}</td>
-                  <td><span className={`badge ${u.role === 'admin' ? 'red' : u.role === 'manager' ? 'amber' : 'green'}`}>{t(u.role)}</span></td>
-                  <td>{u.active ? '✅' : '⛔'}</td>
-                  <td>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setEdit({ ...u, newPin: '' })}>✏️</button>{' '}
+                  <td className="card-title">{u.name} {u.id === currentUser.id && '⭐'}</td>
+                  <td data-label={t('role')}><span className={`badge ${u.role === 'admin' ? 'red' : u.role === 'manager' ? 'amber' : 'green'}`}>{t(u.role)}</span></td>
+                  <td data-label={t('active')}>{u.active ? '✅' : '⛔'}</td>
+                  <td className="card-actions">
+                    <button className="btn-icon sm" onClick={() => setEdit({ ...u, newPin: '' })} aria-label={t('edit')}>✏️</button>{' '}
                     {u.id !== currentUser.id && (
-                      <button className="btn btn-danger btn-sm" onClick={() => remove(u)}>🗑</button>
+                      <button className="btn-icon sm btn-icon-danger" onClick={() => remove(u)} aria-label={t('delete')}>🗑</button>
                     )}
                   </td>
                 </tr>

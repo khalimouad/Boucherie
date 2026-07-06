@@ -210,14 +210,14 @@ export default function Reports() {
               <h2>{t('byProduct')}</h2>
               {byProduct.length === 0 ? <Empty /> : (
                 <div className="table-wrap">
-                  <table className="data">
+                  <table className="data card-table">
                     <thead><tr><th>{t('product')}</th><th className="num">{t('qtySold')}</th><th className="num">{t('total')}</th></tr></thead>
                     <tbody>
                       {byProduct.map((r, i) => (
                         <tr key={i}>
-                          <td>{localName(r, lang)}</td>
-                          <td className="num">{r.qty.toFixed(r.unit === 'kg' ? 3 : 0)}</td>
-                          <td className="num"><strong>{fmtDH(r.total, lang)}</strong></td>
+                          <td className="card-title">{localName(r, lang)}</td>
+                          <td className="num" data-label={t('qtySold')}>{r.qty.toFixed(r.unit === 'kg' ? 3 : 0)}</td>
+                          <td className="num" data-label={t('total')}><strong>{fmtDH(r.total, lang)}</strong></td>
                         </tr>
                       ))}
                     </tbody>
@@ -245,19 +245,19 @@ export default function Reports() {
 
           <div className="card table-wrap" style={{ marginTop: 14 }}>
             {sales.length === 0 ? <Empty icon="🧾" /> : (
-              <table className="data">
+              <table className="data card-table">
                 <thead>
                   <tr><th>{t('ticketNo')}</th><th>{t('date')}</th><th>{t('user')}</th><th>{t('payment')}</th><th className="num">{t('total')}</th><th></th></tr>
                 </thead>
                 <tbody>
                   {[...sales].sort((a, b) => b.date.localeCompare(a.date)).map((s) => (
                     <tr key={s.id} className="clickable" onClick={() => setDetail(s)}>
-                      <td>{s.number} {s.status === 'void' && <span className="badge gray">{t('voided')}</span>}</td>
-                      <td>{fmtDateTime(s.date, lang)}</td>
-                      <td>{s.userName}</td>
-                      <td>{payLabel(s.payment)}</td>
-                      <td className="num"><strong>{fmtDH(s.total, lang)}</strong></td>
-                      <td>›</td>
+                      <td className="card-title">{s.number} {s.status === 'void' && <span className="badge gray">{t('voided')}</span>}</td>
+                      <td data-label={t('date')}>{fmtDateTime(s.date, lang)}</td>
+                      <td data-label={t('user')}>{s.userName}</td>
+                      <td data-label={t('payment')}>{payLabel(s.payment)}</td>
+                      <td className="num" data-label={t('total')}><strong>{fmtDH(s.total, lang)}</strong></td>
+                      <td className="card-actions" data-label="" style={{ color: 'var(--ink-3)' }}>›</td>
                     </tr>
                   ))}
                 </tbody>
@@ -312,14 +312,14 @@ export default function Reports() {
               <h2>{t('byProduct')}</h2>
               {wasteByProduct.length === 0 ? <Empty icon="⚖️" /> : (
                 <div className="table-wrap">
-                  <table className="data">
+                  <table className="data card-table">
                     <thead><tr><th>{t('product')}</th><th className="num">{t('qtyLost')}</th><th className="num">{t('wasteValue')}</th></tr></thead>
                     <tbody>
                       {wasteByProduct.map((r, i) => (
                         <tr key={i}>
-                          <td>{localName(r, lang)}</td>
-                          <td className="num">{r.qty.toFixed(r.unit === 'kg' ? 3 : 0)}</td>
-                          <td className="num"><strong>{fmtDH(r.value, lang)}</strong></td>
+                          <td className="card-title">{localName(r, lang)}</td>
+                          <td className="num" data-label={t('qtyLost')}>{r.qty.toFixed(r.unit === 'kg' ? 3 : 0)}</td>
+                          <td className="num" data-label={t('wasteValue')}><strong>{fmtDH(r.value, lang)}</strong></td>
                         </tr>
                       ))}
                     </tbody>
@@ -346,7 +346,7 @@ export default function Reports() {
           {sessions.length === 0 ? (
             <Empty icon="🗄️" />
           ) : (
-            <table className="data">
+            <table className="data card-table">
               <thead>
                 <tr>
                   <th>{t('opening')}</th>
@@ -361,13 +361,13 @@ export default function Reports() {
               <tbody>
                 {sessions.map((s) => (
                   <tr key={s.id} className="clickable" onClick={() => setSessionDetail(s)}>
-                    <td>{fmtDateTime(s.openedAt, lang)}</td>
-                    <td>{s.openedByName}</td>
-                    <td className="num">{fmtDH(s.openingAmount, lang)}</td>
-                    <td>{s.status === 'open' ? <span className="badge amber">{t('ongoing')}</span> : fmtDateTime(s.closedAt!, lang)}</td>
-                    <td className="num">{s.expectedAmount !== null ? fmtDH(s.expectedAmount, lang) : '—'}</td>
-                    <td className="num">{s.countedAmount !== null ? fmtDH(s.countedAmount, lang) : '—'}</td>
-                    <td className="num">
+                    <td className="card-title">{fmtDateTime(s.openedAt, lang)}</td>
+                    <td data-label={t('by')}>{s.openedByName}</td>
+                    <td className="num" data-label={t('openingAmount')}>{fmtDH(s.openingAmount, lang)}</td>
+                    <td data-label={t('closing')}>{s.status === 'open' ? <span className="badge amber">{t('ongoing')}</span> : fmtDateTime(s.closedAt!, lang)}</td>
+                    <td className="num" data-label={t('expectedCash')}>{s.expectedAmount !== null ? fmtDH(s.expectedAmount, lang) : '—'}</td>
+                    <td className="num" data-label={t('countedCash')}>{s.countedAmount !== null ? fmtDH(s.countedAmount, lang) : '—'}</td>
+                    <td className="num" data-label={t('cashDifference')}>
                       {s.difference !== null ? (
                         <span className={`badge ${s.difference === 0 ? 'green' : s.difference > 0 ? 'amber' : 'red'}`}>
                           {s.difference >= 0 ? '+' : ''}{fmtDH(s.difference, lang)}

@@ -107,17 +107,19 @@ export default function App() {
             <h1>{t(allowed.find((n) => n.id === current)!.label)}</h1>
             <div className="topbar-right">
               <span
+                className="sync-dot"
+                role="status"
+                aria-label={!sync.enabled ? t('cloudOff') : sync.error ? t('cloudError') : t('cloudConnected')}
                 title={!sync.enabled ? t('cloudOff') : sync.error ? t('cloudError') : t('cloudConnected')}
                 style={{
-                  width: 10, height: 10, borderRadius: '50%', display: 'inline-block',
-                  background: !sync.enabled ? '#d6d3d1' : sync.error ? 'var(--brand-500)' : sync.pending > 0 ? 'var(--amber)' : 'var(--accent)',
+                  background: !sync.enabled ? 'var(--border-strong)' : sync.error ? 'var(--brand-500)' : sync.pending > 0 ? 'var(--amber)' : 'var(--accent)',
                 }}
               />
               <div className="lang-switch">
                 <button className={lang === 'fr' ? 'on' : ''} onClick={() => setLang('fr')}>FR</button>
                 <button className={lang === 'ar' ? 'on' : ''} onClick={() => setLang('ar')}>ع</button>
               </div>
-              <button className="btn btn-ghost btn-sm hide-desktop-logout" onClick={() => setUser(null)} title={t('logout')}>⎋</button>
+              <button className="btn-icon hide-desktop-logout" onClick={() => setUser(null)} aria-label={t('logout')} title={t('logout')}>⎋</button>
             </div>
           </header>
           <main className="content">{renderPage()}</main>

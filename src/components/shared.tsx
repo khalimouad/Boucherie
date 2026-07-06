@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 
 /* ---------- Toast ---------- */
@@ -9,9 +9,9 @@ const TCtx = createContext<ToastCtx>({ toast: () => {} });
 export const useToast = () => useContext(TCtx);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [msg, setMsg] = useState<{ text: string; kind: string } | null>(null);
+  const [msg, setMsg] = useState<{ text: string; kind: string; key: number } | null>(null);
   const toast = useCallback((text: string, kind: 'success' | 'info' = 'success') => {
-    setMsg({ text, kind });
+    setMsg({ text, kind, key: Date.now() });
   }, []);
   useEffect(() => {
     if (!msg) return;
@@ -21,7 +21,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <TCtx.Provider value={{ toast }}>
       {children}
-      {msg && <div className={`toast ${msg.kind}`}>{msg.text}</div>}
+      {msg && (
+        <div className={`toast ${msg.kind}`} role="status" aria-live="polite" key={msg.key}>
+          <span aria-hidden="true">{msg.kind === 'success' ? '✅' : 'ℹ️'}</span>
+          {msg.text}
+        </div>
+      )}
     </TCtx.Provider>
   );
 }
@@ -40,12 +45,23 @@ export function Modal({
   footer?: ReactNode;
   wide?: boolean;
 }) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCloseRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'wide' : ''}`}>
+      <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
         <div className="modal-head">
           <h2>{title}</h2>
-          <button className="x-btn" onClick={onClose} aria-label="close">✕</button>
+          <button className="x-btn" onClick={onClose} aria-label="Fermer">✕</button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
@@ -112,6 +128,31 @@ export function Empty({ icon = '📦' }: { icon?: string }) {
     <div className="empty-state">
       <div className="es-icon">{icon}</div>
       <div>{t('noData')}</div>
+    </div>
+  );
+}
+
+/* ---------- Skeleton loading placeholders ---------- */
+export function Skeleton({ className = '', style }: { className?: string; style?: CSSProperties }) {
+  return <div className={`skeleton ${className}`} style={style} aria-hidden="true" />;
+}
+
+export function ProductGridSkeleton({ count = 10 }: { count?: number }) {
+  return (
+    <div className="skeleton-grid" aria-hidden="true">
+      {Array.from({ length: count }, (_, i) => (
+        <Skeleton key={i} className="skeleton-card" />
+      ))}
+    </div>
+  );
+}
+
+export function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div style={{ padding: 18 }} aria-hidden="true">
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className="skeleton-line" style={{ width: `${88 - i * 4}%` }} />
+      ))}
     </div>
   );
 }

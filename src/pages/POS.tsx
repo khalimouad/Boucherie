@@ -14,7 +14,7 @@ import {
 } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
-import { Modal, NumPad, useToast } from '../components/shared';
+import { Empty, Modal, NumPad, ProductGridSkeleton, useToast } from '../components/shared';
 import { printSaleTicket, printSessionReport } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
 import { openDrawerViaBridge } from '../printBridge';
@@ -29,7 +29,8 @@ export default function POS({ user }: { user: User }) {
   const { t, lang } = useI18n();
   const { toast } = useToast();
   const categories = useLiveQuery(() => db.categories.orderBy('sort').toArray(), []) ?? [];
-  const products = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), []) ?? [];
+  const productsRaw = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), []);
+  const products = productsRaw ?? [];
   const barcodeCfg = useLiveQuery(() => getBarcodeSettings(), []) ?? defaultBarcode;
   const session = useLiveQuery(() => db.cashSessions.where('status').equals('open').first(), []);
 
@@ -151,7 +152,10 @@ export default function POS({ user }: { user: User }) {
     <div className="pos-page">
       <div className="session-bar">
         <div className="sb-info">
-          🔓 {t('openedSince')} {fmtDateTime(session.openedAt, lang)} — {t('by')} {session.openedByName}
+          <span className="sb-lock" aria-hidden="true">🔓</span>
+          <span>
+            {t('openedSince')} {fmtDateTime(session.openedAt, lang)} — {t('by')} {session.openedByName}
+          </span>
           <span className="sb-amount">{t('openingAmount')}: {fmtDH(session.openingAmount, lang)}</span>
         </div>
         <div className="sb-actions">
@@ -174,30 +178,36 @@ export default function POS({ user }: { user: User }) {
             </button>
           ))}
         </div>
-        <div className="product-grid">
-          {visible.map((p) => (
-            <button key={p.id} className={`prod-card ${p.stock <= p.lowStock ? 'low' : ''}`} onClick={() => setQtyModal(p)}>
-              <span className="pc-band" style={{ background: catColor(p.categoryId) }} />
-              <span className="pc-icon">{categories.find((c) => c.id === p.categoryId)?.icon ?? '🥩'}</span>
-              <span className="pc-name">{localName(p, lang)}</span>
-              <span>
-                <span className="pc-price">{fmtDH(p.price, lang)}{p.unit === 'kg' ? t('perKg') : t('perPiece')}</span>
-                <br />
-                <span className="pc-stock">
-                  {t('stock')}: {fmtQty(p.stock, p.unit)} {p.unit === 'kg' ? t('kg') : ''}
-                  {p.stock <= p.lowStock ? ' ⚠️' : ''}
+        {productsRaw === undefined ? (
+          <ProductGridSkeleton />
+        ) : visible.length === 0 ? (
+          <Empty icon="🔍" />
+        ) : (
+          <div className="product-grid">
+            {visible.map((p) => (
+              <button key={p.id} className={`prod-card ${p.stock <= p.lowStock ? 'low' : ''}`} onClick={() => setQtyModal(p)}>
+                <span className="pc-band" style={{ background: catColor(p.categoryId) }} />
+                <span className="pc-icon">{categories.find((c) => c.id === p.categoryId)?.icon ?? '🥩'}</span>
+                <span className="pc-name">{localName(p, lang)}</span>
+                <span>
+                  <span className="pc-price">{fmtDH(p.price, lang)}{p.unit === 'kg' ? t('perKg') : t('perPiece')}</span>
+                  <br />
+                  <span className="pc-stock">
+                    {t('stock')}: {fmtQty(p.stock, p.unit)} {p.unit === 'kg' ? t('kg') : ''}
+                    {p.stock <= p.lowStock ? ' ⚠️' : ''}
+                  </span>
                 </span>
-              </span>
-            </button>
-          ))}
-        </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="pos-cart">
         <div className="cart-head">
           <h2>🧺 {t('cart')} ({cart.length})</h2>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={handleOpenDrawer} title={t('openDrawer')}>🗄️</button>
+            <button className="btn-icon sm" onClick={handleOpenDrawer} aria-label={t('openDrawer')} title={t('openDrawer')}>🗄️</button>
             {cart.length > 0 && (
               <button className="btn btn-danger btn-sm" onClick={() => setCart([])}>{t('clearCart')}</button>
             )}
@@ -214,7 +224,7 @@ export default function POS({ user }: { user: User }) {
                 </div>
               </div>
               <div className="cl-total">{fmtDH(l.total, lang)}</div>
-              <button className="cl-del" onClick={() => setCart((c) => c.filter((x) => x.key !== l.key))}>🗑</button>
+              <button className="cl-del" aria-label={t('delete')} onClick={() => setCart((c) => c.filter((x) => x.key !== l.key))}>🗑</button>
             </div>
           ))}
         </div>
