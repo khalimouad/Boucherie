@@ -17,6 +17,7 @@ import { fmtDH, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
 import { Modal, NumPad, useToast } from '../components/shared';
 import { printSaleTicket } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
+import { openDrawerViaBridge } from '../printBridge';
 
 interface CartLine extends SaleItem {
   key: number;
@@ -89,6 +90,11 @@ export default function POS({ user }: { user: User }) {
 
   const catColor = (id: string) => categories.find((c) => c.id === id)?.color ?? '#999';
 
+  const handleOpenDrawer = async () => {
+    const ok = await openDrawerViaBridge();
+    toast(ok ? t('drawerOpened') : t('drawerFailed'), ok ? 'success' : 'info');
+  };
+
   const finishSale = async (payment: PaymentMethod, paid: number, discount: number) => {
     const total = round2(subtotal - discount);
     const sale: Sale = {
@@ -159,9 +165,12 @@ export default function POS({ user }: { user: User }) {
       <div className="pos-cart">
         <div className="cart-head">
           <h2>🧺 {t('cart')} ({cart.length})</h2>
-          {cart.length > 0 && (
-            <button className="btn btn-danger btn-sm" onClick={() => setCart([])}>{t('clearCart')}</button>
-          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={handleOpenDrawer} title={t('openDrawer')}>🗄️</button>
+            {cart.length > 0 && (
+              <button className="btn btn-danger btn-sm" onClick={() => setCart([])}>{t('clearCart')}</button>
+            )}
+          </div>
         </div>
         <div className="cart-items">
           {cart.length === 0 && <div className="cart-empty">{t('emptyCart')}</div>}

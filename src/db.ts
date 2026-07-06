@@ -309,6 +309,28 @@ export const saveTicketSettings = (t: TicketSettings) => db.settings.put({ key: 
 export const getBarcodeSettings = () => getJsonSetting('barcode', defaultBarcode);
 export const saveBarcodeSettings = (b: BarcodeSettings) => db.settings.put({ key: 'barcode', value: JSON.stringify(b) });
 
+/** Local print bridge: a small helper program on the till that relays raw
+ * ESC/POS bytes to the ticket printer and can pulse the cash drawer — a web
+ * page cannot do either directly. It must run on the same machine as the
+ * browser (http://127.0.0.1) since HTTPS pages may only call plain-HTTP
+ * loopback addresses without hitting mixed-content blocking. */
+export interface BridgeSettings {
+  enabled: boolean;
+  url: string; // e.g. http://127.0.0.1:9123
+  token: string;
+  openDrawerOnCash: boolean;
+}
+
+export const defaultBridge: BridgeSettings = {
+  enabled: false,
+  url: 'http://127.0.0.1:9123',
+  token: '',
+  openDrawerOnCash: true,
+};
+
+export const getBridgeSettings = () => getJsonSetting('bridge', defaultBridge);
+export const saveBridgeSettings = (b: BridgeSettings) => db.settings.put({ key: 'bridge', value: JSON.stringify(b) });
+
 /* ---- seed ----
    Seed ids are fixed so that two freshly-installed devices that later join the
    same cloud converge on the same rows instead of duplicating the catalog. */

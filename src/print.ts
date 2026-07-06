@@ -1,5 +1,6 @@
 import type { Sale, TicketSettings } from './db';
 import { fmtDH, fmtQty, fmtDateTime } from './utils';
+import { printSaleViaBridge } from './printBridge';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -142,6 +143,10 @@ export function printHTML(html: string) {
   setTimeout(doPrint, 400);
 }
 
-export function printSaleTicket(sale: Sale, ts: TicketSettings, duplicate = false) {
-  printHTML(buildTicketHTML(sale, ts, duplicate));
+/** Tries the local print bridge first (silent, no dialog, can kick the cash
+ * drawer); falls back to the browser's print dialog when it's not configured
+ * or unreachable, so printing keeps working even without the bridge installed. */
+export async function printSaleTicket(sale: Sale, ts: TicketSettings, duplicate = false) {
+  const ok = await printSaleViaBridge(sale, ts, duplicate).catch(() => false);
+  if (!ok) printHTML(buildTicketHTML(sale, ts, duplicate));
 }

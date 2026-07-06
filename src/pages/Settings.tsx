@@ -4,10 +4,13 @@ import {
   defaultBarcode,
   defaultTicket,
   getBarcodeSettings,
+  getBridgeSettings,
   getTicketSettings,
   saveBarcodeSettings,
+  saveBridgeSettings,
   saveTicketSettings,
   type BarcodeSettings,
+  type BridgeSettings,
   type Sale,
   type TicketSettings,
 } from '../db';
@@ -15,9 +18,10 @@ import { useI18n, localName } from '../i18n';
 import { Modal, Switch, useToast } from '../components/shared';
 import { buildTicketHTML, printHTML } from '../print';
 import { CLOUD_EMAIL, disableSync, enableSync, getSyncStatus, subscribeSync, syncNow } from '../sync';
+import { bridgePing, testPrintViaBridge } from '../printBridge';
 import { parseBarcode } from '../barcode';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { fmtDateTime, fmtQty } from '../utils';
+import { fmtDateTime, fmtQty, uid as genUid } from '../utils';
 
 const demoSale: Sale = {
   number: '20260705-0042',
@@ -95,6 +99,81 @@ function CloudCard() {
           <button className="btn btn-danger" onClick={() => void disableSync()}>{t('cloudDisable')}</button>
         </div>
       )}
+    </div>
+  );
+}
+
+function BridgeCard() {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const [bg, setBg] = useState<BridgeSettings | null>(null);
+  const [testing, setTesting] = useState<'idle' | 'ok' | 'fail'>('idle');
+
+  useEffect(() => {
+    getBridgeSettings().then(setBg);
+  }, []);
+  if (!bg) return null;
+
+  const up = (patch: Partial<BridgeSettings>) => {
+    setBg({ ...bg, ...patch });
+    setTesting('idle');
+  };
+
+  const save = async () => {
+    await saveBridgeSettings(bg);
+    toast(t('settingsSaved'));
+  };
+
+  const testConnection = async () => {
+    setTesting('idle');
+    const ok = await bridgePing(bg);
+    setTesting(ok ? 'ok' : 'fail');
+  };
+
+  const testPrint = async () => {
+    const ts = await getTicketSettings();
+    const ok = await testPrintViaBridge(demoSale, ts);
+    toast(ok ? t('bridgeConnected') : t('bridgeNotFound'), ok ? 'success' : 'info');
+  };
+
+  return (
+    <div className="card card-pad" style={{ marginBottom: 14 }}>
+      <h2>🖨️ {t('printBridge')}</h2>
+      <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('printBridgeHint')}</p>
+      <div className="switch-row">
+        <span>{t('bridgeEnable')}</span>
+        <Switch checked={bg.enabled} onChange={(v) => up({ enabled: v })} />
+      </div>
+      {bg.enabled && (
+        <>
+          <div className="field" style={{ marginTop: 12 }}>
+            <label>{t('bridgeUrl')}</label>
+            <input value={bg.url} onChange={(e) => up({ url: e.target.value })} placeholder="http://127.0.0.1:9123" />
+          </div>
+          <div className="field">
+            <label>{t('bridgeToken')}</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={bg.token} onChange={(e) => up({ token: e.target.value })} style={{ flex: 1 }} />
+              <button className="btn btn-ghost" onClick={() => up({ token: genUid().slice(0, 8) })}>
+                {t('bridgeGenerate')}
+              </button>
+            </div>
+          </div>
+          <div className="switch-row">
+            <span>{t('bridgeOpenDrawerOnCash')}</span>
+            <Switch checked={bg.openDrawerOnCash} onChange={(v) => up({ openDrawerOnCash: v })} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            <button className="btn btn-ghost" onClick={testConnection}>🔌 {t('bridgeTestConnection')}</button>
+            <button className="btn btn-ghost" onClick={testPrint}>🧾 {t('bridgeTestPrint')}</button>
+          </div>
+          {testing === 'ok' && <div className="change-banner" style={{ marginTop: 10 }}>{t('bridgeConnected')}</div>}
+          {testing === 'fail' && <div className="change-banner warn" style={{ marginTop: 10 }}>{t('bridgeNotFound')}</div>}
+        </>
+      )}
+      <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={save}>
+        💾 {t('save')}
+      </button>
     </div>
   );
 }
@@ -237,6 +316,7 @@ export default function Settings() {
       <div className="grid-2">
         <div>
           <CloudCard />
+          <BridgeCard />
           <BarcodeCard />
           <div className="card card-pad" style={{ marginBottom: 14 }}>
             <h2>🏪 {t('shopInfo')}</h2>

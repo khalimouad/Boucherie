@@ -237,6 +237,26 @@ const dict = {
   productCode: { fr: 'Code balance / PLU', ar: 'كود الميزان / PLU' },
   scanAdded: { fr: 'Article scanné ajouté', ar: 'تزادت السلعة المسكانية' },
   scanUnknown: { fr: 'Code-barres inconnu', ar: 'باركود ماشي معروف' },
+
+  // print bridge / drawer
+  printBridge: { fr: 'Impression directe & tiroir-caisse', ar: 'الطباعة المباشرة وصندوق النقود' },
+  printBridgeHint: {
+    fr: 'Nécessite le petit programme "pont d\'impression" installé sur la caisse. Imprime sans boîte de dialogue et peut ouvrir le tiroir-caisse.',
+    ar: 'كيحتاج برنامج صغير "الجسر ديال الطباعة" مثبت فالصندوق. كيطبع بلا نافذة وقادر يحل صندوق النقود.',
+  },
+  bridgeEnable: { fr: 'Activer le pont d’impression', ar: 'تفعيل جسر الطباعة' },
+  bridgeUrl: { fr: 'Adresse du pont', ar: 'عنوان الجسر' },
+  bridgeToken: { fr: 'Jeton de sécurité', ar: 'رمز الأمان' },
+  bridgeGenerate: { fr: 'Générer', ar: 'توليد' },
+  bridgeOpenDrawerOnCash: { fr: 'Ouvrir le tiroir automatiquement (paiement espèces)', ar: 'حل الصندوق أوتوماتيكيا (خلاص كاش)' },
+  bridgeTestConnection: { fr: 'Tester la connexion', ar: 'جرب الاتصال' },
+  bridgeTestPrint: { fr: 'Test d’impression (pont)', ar: 'تجربة الطباعة (الجسر)' },
+  bridgeConnected: { fr: 'Pont détecté ✅', ar: 'الجسر متصل ✅' },
+  bridgeNotFound: { fr: 'Pont introuvable — vérifiez qu’il est démarré sur la caisse', ar: 'الجسر ماكاينش — تأكد أنه خدام فالصندوق' },
+  bridgeSetupLink: { fr: 'Voir les instructions d’installation', ar: 'شوف تعليمات التثبيت' },
+  openDrawer: { fr: 'Ouvrir le tiroir', ar: 'حل الصندوق' },
+  drawerOpened: { fr: 'Tiroir ouvert', ar: 'تحل الصندوق' },
+  drawerFailed: { fr: 'Pont d’impression non disponible', ar: 'جسر الطباعة ماشي متوفر' },
 } as const;
 
 export type TKey = keyof typeof dict;
