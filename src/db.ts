@@ -117,6 +117,38 @@ export interface Setting extends Synced {
   value: string;
 }
 
+export type CashMovementType = 'in' | 'out';
+
+export interface CashMovement extends Synced {
+  id?: string;
+  sessionId: string;
+  date: string; // ISO
+  type: CashMovementType;
+  amount: number;
+  note: string;
+  userId: string;
+  userName: string;
+}
+
+export interface CashSession extends Synced {
+  id?: string;
+  openedAt: string; // ISO
+  openedBy: string;
+  openedByName: string;
+  openingAmount: number;
+  closedAt: string | null;
+  closedBy: string | null;
+  closedByName: string | null;
+  countedAmount: number | null;
+  expectedAmount: number | null;
+  difference: number | null; // countedAmount - expectedAmount
+  cashSalesTotal: number | null;
+  cashInTotal: number | null;
+  cashOutTotal: number | null;
+  note: string;
+  status: 'open' | 'closed';
+}
+
 export const SYNCED_TABLES = [
   'users',
   'categories',
@@ -126,6 +158,8 @@ export const SYNCED_TABLES = [
   'sales',
   'waste',
   'settings',
+  'cashSessions',
+  'cashMovements',
 ] as const;
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
@@ -138,6 +172,8 @@ export const db = new Dexie('boucherie-pos-2') as Dexie & {
   sales: EntityTable<Sale, 'id'>;
   waste: EntityTable<Waste, 'id'>;
   settings: EntityTable<Setting, 'key'>;
+  cashSessions: EntityTable<CashSession, 'id'>;
+  cashMovements: EntityTable<CashMovement, 'id'>;
 };
 
 db.version(1).stores({
@@ -149,6 +185,19 @@ db.version(1).stores({
   sales: 'id, date, number, userId',
   waste: 'id, date, productId, reason',
   settings: 'key',
+});
+
+db.version(2).stores({
+  users: 'id, name, role',
+  categories: 'id, sort',
+  products: 'id, categoryId, nameFr, active',
+  suppliers: 'id, name',
+  purchases: 'id, date, supplierId',
+  sales: 'id, date, number, userId',
+  waste: 'id, date, productId, reason',
+  settings: 'key',
+  cashSessions: 'id, status, openedAt',
+  cashMovements: 'id, sessionId, date',
 });
 
 /* ---- sync change tracking ----

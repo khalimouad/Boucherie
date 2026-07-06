@@ -257,6 +257,37 @@ const dict = {
   openDrawer: { fr: 'Ouvrir le tiroir', ar: 'حل الصندوق' },
   drawerOpened: { fr: 'Tiroir ouvert', ar: 'تحل الصندوق' },
   drawerFailed: { fr: 'Pont d’impression non disponible', ar: 'جسر الطباعة ماشي متوفر' },
+
+  // cash session (opening/closing the register)
+  cashSession: { fr: 'Gestion de caisse', ar: 'تسيير الصندوق' },
+  openRegister: { fr: 'Ouvrir la caisse', ar: 'حل الصندوق' },
+  closeRegister: { fr: 'Fermer la caisse', ar: 'سد الصندوق' },
+  registerClosed: { fr: 'La caisse est fermée', ar: 'الصندوق مسدود' },
+  registerClosedHint: {
+    fr: 'Déclarez le fond de caisse de départ pour commencer à vendre.',
+    ar: 'دخّل مبلغ البداية باش تبدا تبيع.',
+  },
+  openingAmount: { fr: 'Fond de caisse de départ', ar: 'مبلغ البداية' },
+  openedSince: { fr: 'Caisse ouverte depuis', ar: 'الصندوق حال من' },
+  by: { fr: 'par', ar: 'من طرف' },
+  cashMovement: { fr: 'Mouvement de caisse', ar: 'حركة الصندوق' },
+  cashIn: { fr: 'Entrée d’espèces', ar: 'دخول الفلوس' },
+  cashOut: { fr: 'Sortie d’espèces', ar: 'خروج الفلوس' },
+  movementType: { fr: 'Type de mouvement', ar: 'نوع الحركة' },
+  movementAdded: { fr: 'Mouvement enregistré', ar: 'تسجّلات الحركة' },
+  expectedCash: { fr: 'Espèces attendues', ar: 'الفلوس المنتظرة' },
+  countedCash: { fr: 'Espèces comptées', ar: 'الفلوس المعدودة' },
+  cashDifference: { fr: 'Écart de caisse', ar: 'الفرق فالصندوق' },
+  cashSalesTotal: { fr: 'Ventes espèces', ar: 'مبيعات الكاش' },
+  confirmClose: { fr: 'Confirmer la fermeture', ar: 'تأكيد السد' },
+  registerClosedDone: { fr: 'Caisse fermée', ar: 'تسد الصندوق' },
+  registerOpenedDone: { fr: 'Caisse ouverte', ar: 'تحل الصندوق' },
+  overShort: { fr: 'excédent / manquant', ar: 'زيادة / نقصان' },
+  cashSessionsReport: { fr: 'Sessions de caisse', ar: 'جلسات الصندوق' },
+  opening: { fr: 'Ouverture', ar: 'الحل' },
+  closing: { fr: 'Fermeture', ar: 'السد' },
+  ongoing: { fr: 'en cours', ar: 'جارية' },
+  printReport: { fr: 'Imprimer le rapport', ar: 'طبع التقرير' },
 } as const;
 
 export type TKey = keyof typeof dict;

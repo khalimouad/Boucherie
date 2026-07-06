@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   db,
@@ -13,11 +13,13 @@ import {
   type User,
 } from '../db';
 import { localName, useI18n } from '../i18n';
-import { fmtDH, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
+import { fmtDH, fmtDateTime, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
 import { Modal, NumPad, useToast } from '../components/shared';
-import { printSaleTicket } from '../print';
+import { printSaleTicket, printSessionReport } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
 import { openDrawerViaBridge } from '../printBridge';
+import { addCashMovement, closeSession, computeSessionTotals, openSession } from '../cashSession';
+import type { CashMovementType, CashSession } from '../db';
 
 interface CartLine extends SaleItem {
   key: number;
@@ -29,6 +31,7 @@ export default function POS({ user }: { user: User }) {
   const categories = useLiveQuery(() => db.categories.orderBy('sort').toArray(), []) ?? [];
   const products = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), []) ?? [];
   const barcodeCfg = useLiveQuery(() => getBarcodeSettings(), []) ?? defaultBarcode;
+  const session = useLiveQuery(() => db.cashSessions.where('status').equals('open').first(), []);
 
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -36,6 +39,9 @@ export default function POS({ user }: { user: User }) {
   const [qtyModal, setQtyModal] = useState<Product | null>(null);
   const [payModal, setPayModal] = useState(false);
   const [doneSale, setDoneSale] = useState<Sale | null>(null);
+  const [movementModal, setMovementModal] = useState(false);
+  const [closeModal, setCloseModal] = useState(false);
+  const [closedSummary, setClosedSummary] = useState<CashSession | null>(null);
 
   const visible = useMemo(() => {
     let list = products;
@@ -127,8 +133,33 @@ export default function POS({ user }: { user: User }) {
     printSaleTicket(sale, ts);
   };
 
+  // Closing flips `session` to undefined on the next tick (useLiveQuery re-runs
+  // against a table with no open row), so the summary modal is rendered from
+  // this outer branch — otherwise it would be unmounted before ever showing.
+  if (!session) {
+    return (
+      <>
+        <OpenRegisterScreen user={user} />
+        {closedSummary && (
+          <ClosedSummaryModal session={closedSummary} onClose={() => setClosedSummary(null)} />
+        )}
+      </>
+    );
+  }
+
   return (
-    <div className="pos">
+    <div className="pos-page">
+      <div className="session-bar">
+        <div className="sb-info">
+          🔓 {t('openedSince')} {fmtDateTime(session.openedAt, lang)} — {t('by')} {session.openedByName}
+          <span className="sb-amount">{t('openingAmount')}: {fmtDH(session.openingAmount, lang)}</span>
+        </div>
+        <div className="sb-actions">
+          <button className="btn btn-ghost btn-sm" onClick={() => setMovementModal(true)}>💰 {t('cashMovement')}</button>
+          <button className="btn btn-danger btn-sm" onClick={() => setCloseModal(true)}>🔒 {t('closeRegister')}</button>
+        </div>
+      </div>
+      <div className="pos">
       <div className="pos-left">
         <div className="filters" style={{ marginBottom: 10 }}>
           <input placeholder={t('search')} value={query} onChange={(e) => setQuery(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
@@ -242,7 +273,199 @@ export default function POS({ user }: { user: User }) {
           </div>
         </Modal>
       )}
+      </div>
+
+      {movementModal && (
+        <CashMovementModal
+          onClose={() => setMovementModal(false)}
+          onConfirm={async (type, amount, note) => {
+            await addCashMovement(session, type, amount, note, user);
+            setMovementModal(false);
+            toast(t('movementAdded'));
+          }}
+        />
+      )}
+
+      {closeModal && (
+        <CloseRegisterModal
+          session={session}
+          onClose={() => setCloseModal(false)}
+          onConfirm={async (counted, note) => {
+            await closeSession(session, counted, note, user);
+            const finalSession = await db.cashSessions.get(session.id!);
+            setCloseModal(false);
+            toast(t('registerClosedDone'));
+            if (finalSession) setClosedSummary(finalSession);
+          }}
+        />
+      )}
+
+      {closedSummary && (
+        <ClosedSummaryModal session={closedSummary} onClose={() => setClosedSummary(null)} />
+      )}
     </div>
+  );
+}
+
+function ClosedSummaryModal({ session, onClose }: { session: CashSession; onClose: () => void }) {
+  const { t, lang } = useI18n();
+  const diff = session.difference ?? 0;
+  return (
+    <Modal
+      title={`🔒 ${t('registerClosedDone')}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={async () => printSessionReport(session, await getTicketSettings())}>
+            🖨 {t('printReport')}
+          </button>
+          <button className="btn btn-primary" onClick={onClose}>
+            {t('close')}
+          </button>
+        </>
+      }
+    >
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '0.9rem', color: 'var(--text-2)' }}>{t('expectedCash')}: {fmtDH(session.expectedAmount ?? 0, lang)}</div>
+        <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '10px 0' }}>{fmtDH(session.countedAmount ?? 0, lang)}</div>
+        <div className={`change-banner ${diff < 0 ? 'warn' : ''}`}>
+          {t('cashDifference')}: {diff >= 0 ? '+' : ''}{fmtDH(diff, lang)}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function OpenRegisterScreen({ user }: { user: User }) {
+  const { t, lang } = useI18n();
+  const { toast } = useToast();
+  const [val, setVal] = useState('');
+  const amount = parseFloat(val.replace(',', '.')) || 0;
+
+  const confirm = async () => {
+    await openSession(user, amount);
+    toast(t('registerOpenedDone'));
+  };
+
+  return (
+    <div className="login-screen" style={{ minHeight: 'calc(100vh - 140px)' }}>
+      <div className="login-card">
+        <div className="login-logo">🗄️</div>
+        <div className="login-title">{t('registerClosed')}</div>
+        <div className="login-sub">{t('registerClosedHint')}</div>
+        <label>{t('openingAmount')}</label>
+        <div className="numpad-display">{val || '0'} {lang === 'ar' ? 'د.م.' : 'DH'}</div>
+        <NumPad value={val} onChange={setVal} />
+        <button className="btn btn-success btn-lg btn-block" style={{ marginTop: 14 }} onClick={confirm}>
+          🔓 {t('openRegister')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CashMovementModal({
+  onClose,
+  onConfirm,
+}: {
+  onClose: () => void;
+  onConfirm: (type: CashMovementType, amount: number, note: string) => void;
+}) {
+  const { t, lang } = useI18n();
+  const [type, setType] = useState<CashMovementType>('out');
+  const [val, setVal] = useState('');
+  const [note, setNote] = useState('');
+  const amount = parseFloat(val.replace(',', '.')) || 0;
+
+  return (
+    <Modal
+      title={`💰 ${t('cashMovement')}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>{t('cancel')}</button>
+          <button className="btn btn-primary" disabled={amount <= 0} onClick={() => onConfirm(type, amount, note)}>
+            {t('save')}
+          </button>
+        </>
+      }
+    >
+      <div className="pay-methods" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+        <button className={`pay-method ${type === 'in' ? 'on' : ''}`} onClick={() => setType('in')}>
+          <span className="pm-icon">⬇️</span>
+          {t('cashIn')}
+        </button>
+        <button className={`pay-method ${type === 'out' ? 'on' : ''}`} onClick={() => setType('out')}>
+          <span className="pm-icon">⬆️</span>
+          {t('cashOut')}
+        </button>
+      </div>
+      <label>{t('amount')} (DH)</label>
+      <div className="numpad-display">{val || '0'} {lang === 'ar' ? 'د.م.' : 'DH'}</div>
+      <NumPad value={val} onChange={setVal} />
+      <div className="field" style={{ marginTop: 12 }}>
+        <label>{t('note')}</label>
+        <input value={note} onChange={(e) => setNote(e.target.value)} />
+      </div>
+    </Modal>
+  );
+}
+
+function CloseRegisterModal({
+  session,
+  onClose,
+  onConfirm,
+}: {
+  session: CashSession;
+  onClose: () => void;
+  onConfirm: (counted: number, note: string) => void;
+}) {
+  const { t, lang } = useI18n();
+  const [totals, setTotals] = useState<{ cashSalesTotal: number; cashInTotal: number; cashOutTotal: number; expectedAmount: number } | null>(null);
+  const [val, setVal] = useState('');
+  const [note, setNote] = useState('');
+  const counted = parseFloat(val.replace(',', '.')) || 0;
+  const diff = totals ? round2(counted - totals.expectedAmount) : 0;
+
+  useEffect(() => {
+    computeSessionTotals(session).then(setTotals);
+  }, [session]);
+
+  return (
+    <Modal
+      title={`🔒 ${t('closeRegister')}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>{t('cancel')}</button>
+          <button className="btn btn-danger" disabled={!totals} onClick={() => onConfirm(counted, note)}>
+            {t('confirmClose')}
+          </button>
+        </>
+      }
+    >
+      {totals && (
+        <div style={{ marginBottom: 14 }}>
+          <div className="switch-row"><span>{t('openingAmount')}</span><strong>{fmtDH(session.openingAmount, lang)}</strong></div>
+          <div className="switch-row"><span>{t('cashSalesTotal')}</span><strong>{fmtDH(totals.cashSalesTotal, lang)}</strong></div>
+          <div className="switch-row"><span>{t('cashIn')}</span><strong>{fmtDH(totals.cashInTotal, lang)}</strong></div>
+          <div className="switch-row"><span>{t('cashOut')}</span><strong>{totals.cashOutTotal > 0 ? '-' : ''}{fmtDH(totals.cashOutTotal, lang)}</strong></div>
+          <div className="switch-row"><span>{t('expectedCash')}</span><strong>{fmtDH(totals.expectedAmount, lang)}</strong></div>
+        </div>
+      )}
+      <label>{t('countedCash')} (DH)</label>
+      <div className="numpad-display">{val || '0'} {lang === 'ar' ? 'د.م.' : 'DH'}</div>
+      <NumPad value={val} onChange={setVal} />
+      {totals && val && (
+        <div className={`change-banner ${diff < 0 ? 'warn' : ''}`}>
+          {t('cashDifference')}: {diff >= 0 ? '+' : ''}{fmtDH(diff, lang)}
+        </div>
+      )}
+      <div className="field" style={{ marginTop: 12 }}>
+        <label>{t('note')}</label>
+        <input value={note} onChange={(e) => setNote(e.target.value)} />
+      </div>
+    </Modal>
   );
 }
 

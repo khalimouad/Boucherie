@@ -1,4 +1,4 @@
-import type { Sale, TicketSettings } from './db';
+import type { CashSession, Sale, TicketSettings } from './db';
 import { fmtDH, fmtQty, fmtDateTime } from './utils';
 import { printSaleViaBridge } from './printBridge';
 
@@ -149,4 +149,45 @@ export function printHTML(html: string) {
 export async function printSaleTicket(sale: Sale, ts: TicketSettings, duplicate = false) {
   const ok = await printSaleViaBridge(sale, ts, duplicate).catch(() => false);
   if (!ok) printHTML(buildTicketHTML(sale, ts, duplicate));
+}
+
+/** End-of-shift cash reconciliation report — printed via the browser dialog
+ * (occasional/administrative document, not part of the per-sale fast path). */
+export function printSessionReport(session: CashSession, ts: TicketSettings) {
+  const widthMM = ts.paperWidth === '58' ? 58 : 80;
+  const fr = ts.ticketLang === 'fr' || ts.ticketLang === 'both';
+  const ar = ts.ticketLang === 'ar' || ts.ticketLang === 'both';
+  const bi = (a: string, b: string) => [fr ? a : '', ar ? b : ''].filter(Boolean).join(' — ');
+  const row = (a: string, b: string, grand = false) =>
+    `<div class="row${grand ? ' grand' : ''}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
+  const diff = session.difference ?? 0;
+
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  @page { size: ${widthMM}mm auto; margin: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:${widthMM}mm; font-family:'Courier New',monospace; font-size:12px; padding:3mm 2.5mm 6mm; }
+  .center { text-align:center; }
+  .title { font-size:15px; font-weight:bold; margin-bottom:2mm; }
+  .sep { border-top:1px dashed #000; margin:2mm 0; }
+  .row { display:flex; justify-content:space-between; padding:0.6mm 0; }
+  .grand { font-weight:bold; font-size:14px; border-top:1px solid #000; border-bottom:1px solid #000; padding:1mm 0; margin-top:1mm; }
+  .diff { text-align:center; font-weight:bold; font-size:14px; margin-top:2mm; padding:1mm; border:1px solid #000; }
+</style></head><body>
+  <div class="center title">${esc(bi('Rapport de caisse', 'تقرير الصندوق'))}</div>
+  <div class="sep"></div>
+  ${row(bi('Ouverture', 'الحل'), fmtDateTime(session.openedAt, 'fr'))}
+  ${row(bi('Ouvert par', 'من طرف'), session.openedByName)}
+  ${session.closedAt ? row(bi('Fermeture', 'السد'), fmtDateTime(session.closedAt, 'fr')) : ''}
+  ${session.closedByName ? row(bi('Fermé par', 'من طرف'), session.closedByName) : ''}
+  <div class="sep"></div>
+  ${row(bi('Fond de départ', 'مبلغ البداية'), fmtDH(session.openingAmount, 'fr'))}
+  ${row(bi('Ventes espèces', 'مبيعات الكاش'), fmtDH(session.cashSalesTotal ?? 0, 'fr'))}
+  ${row(bi('Entrées', 'دخول'), fmtDH(session.cashInTotal ?? 0, 'fr'))}
+  ${row(bi('Sorties', 'خروج'), ((session.cashOutTotal ?? 0) > 0 ? '-' : '') + fmtDH(session.cashOutTotal ?? 0, 'fr'))}
+  ${row(bi('Attendu', 'المنتظر'), fmtDH(session.expectedAmount ?? 0, 'fr'), true)}
+  ${row(bi('Compté', 'المعدود'), fmtDH(session.countedAmount ?? 0, 'fr'))}
+  <div class="diff">${esc(bi('Écart', 'الفرق'))}: ${diff >= 0 ? '+' : ''}${fmtDH(diff, 'fr')}</div>
+</body></html>`;
+  printHTML(html);
 }

@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, getTicketSettings, type Sale } from '../db';
+import { db, getTicketSettings, type CashSession, type Sale } from '../db';
 import { localName, useI18n } from '../i18n';
 import { dateInputValue, downloadCSV, fmtDH, fmtDateTime, round2, startOfDay } from '../utils';
 import { Empty, Modal, useToast } from '../components/shared';
-import { printSaleTicket } from '../print';
+import { printSaleTicket, printSessionReport } from '../print';
 import { REASONS } from './Waste';
 
-type Tab = 'sales' | 'purchases' | 'waste';
+type Tab = 'sales' | 'purchases' | 'waste' | 'sessions';
 type Range = 'today' | 'week' | 'month' | 'custom';
 
 export default function Reports() {
@@ -38,6 +38,8 @@ export default function Reports() {
   const sales = useLiveQuery(() => db.sales.where('date').between(fromISO, toISO, true, true).toArray(), [fromISO, toISO]) ?? [];
   const purchases = useLiveQuery(() => db.purchases.where('date').between(fromISO, toISO, true, true).toArray(), [fromISO, toISO]) ?? [];
   const waste = useLiveQuery(() => db.waste.where('date').between(fromISO, toISO, true, true).toArray(), [fromISO, toISO]) ?? [];
+  const sessions = useLiveQuery(() => db.cashSessions.where('openedAt').between(fromISO, toISO, true, true).reverse().toArray(), [fromISO, toISO]) ?? [];
+  const [sessionDetail, setSessionDetail] = useState<CashSession | null>(null);
 
   const products = useLiveQuery(() => db.products.toArray(), []) ?? [];
   const productsMap = useMemo(() => new Map(products.map((p) => [p.id!, p])), [products]);
@@ -153,6 +155,7 @@ export default function Reports() {
           <button className={tab === 'sales' ? 'on' : ''} onClick={() => setTab('sales')}>💵 {t('salesReport')}</button>
           <button className={tab === 'purchases' ? 'on' : ''} onClick={() => setTab('purchases')}>🚚 {t('purchasesReport')}</button>
           <button className={tab === 'waste' ? 'on' : ''} onClick={() => setTab('waste')}>⚖️ {t('wasteReport')}</button>
+          <button className={tab === 'sessions' ? 'on' : ''} onClick={() => setTab('sessions')}>🗄️ {t('cashSessionsReport')}</button>
         </div>
         <div className="ph-actions">
           {tab === 'sales' && <button className="btn btn-ghost" onClick={exportSales}>⬇ {t('exportCsv')}</button>}
@@ -336,6 +339,78 @@ export default function Reports() {
             </div>
           </div>
         </>
+      )}
+
+      {tab === 'sessions' && (
+        <div className="card table-wrap">
+          {sessions.length === 0 ? (
+            <Empty icon="🗄️" />
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>{t('opening')}</th>
+                  <th>{t('by')}</th>
+                  <th className="num">{t('openingAmount')}</th>
+                  <th>{t('closing')}</th>
+                  <th className="num">{t('expectedCash')}</th>
+                  <th className="num">{t('countedCash')}</th>
+                  <th className="num">{t('cashDifference')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessions.map((s) => (
+                  <tr key={s.id} className="clickable" onClick={() => setSessionDetail(s)}>
+                    <td>{fmtDateTime(s.openedAt, lang)}</td>
+                    <td>{s.openedByName}</td>
+                    <td className="num">{fmtDH(s.openingAmount, lang)}</td>
+                    <td>{s.status === 'open' ? <span className="badge amber">{t('ongoing')}</span> : fmtDateTime(s.closedAt!, lang)}</td>
+                    <td className="num">{s.expectedAmount !== null ? fmtDH(s.expectedAmount, lang) : '—'}</td>
+                    <td className="num">{s.countedAmount !== null ? fmtDH(s.countedAmount, lang) : '—'}</td>
+                    <td className="num">
+                      {s.difference !== null ? (
+                        <span className={`badge ${s.difference === 0 ? 'green' : s.difference > 0 ? 'amber' : 'red'}`}>
+                          {s.difference >= 0 ? '+' : ''}{fmtDH(s.difference, lang)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {sessionDetail && (
+        <Modal
+          title={`🗄️ ${t('cashSession')}`}
+          onClose={() => setSessionDetail(null)}
+          footer={
+            sessionDetail.status === 'closed' ? (
+              <button className="btn btn-primary" onClick={async () => printSessionReport(sessionDetail, await getTicketSettings())}>
+                🖨 {t('printReport')}
+              </button>
+            ) : undefined
+          }
+        >
+          <div className="switch-row"><span>{t('opening')}</span><strong>{fmtDateTime(sessionDetail.openedAt, lang)}</strong></div>
+          <div className="switch-row"><span>{t('by')}</span><strong>{sessionDetail.openedByName}</strong></div>
+          <div className="switch-row"><span>{t('openingAmount')}</span><strong>{fmtDH(sessionDetail.openingAmount, lang)}</strong></div>
+          {sessionDetail.status === 'closed' && (
+            <>
+              <div className="switch-row"><span>{t('closing')}</span><strong>{fmtDateTime(sessionDetail.closedAt!, lang)}</strong></div>
+              <div className="switch-row"><span>{t('by')}</span><strong>{sessionDetail.closedByName}</strong></div>
+              <div className="switch-row"><span>{t('cashSalesTotal')}</span><strong>{fmtDH(sessionDetail.cashSalesTotal ?? 0, lang)}</strong></div>
+              <div className="switch-row"><span>{t('cashIn')}</span><strong>{fmtDH(sessionDetail.cashInTotal ?? 0, lang)}</strong></div>
+              <div className="switch-row"><span>{t('cashOut')}</span><strong>{(sessionDetail.cashOutTotal ?? 0) > 0 ? '-' : ''}{fmtDH(sessionDetail.cashOutTotal ?? 0, lang)}</strong></div>
+              <div className="switch-row"><span>{t('expectedCash')}</span><strong>{fmtDH(sessionDetail.expectedAmount ?? 0, lang)}</strong></div>
+              <div className="switch-row"><span>{t('countedCash')}</span><strong>{fmtDH(sessionDetail.countedAmount ?? 0, lang)}</strong></div>
+              <div className="switch-row"><span>{t('cashDifference')}</span><strong>{(sessionDetail.difference ?? 0) >= 0 ? '+' : ''}{fmtDH(sessionDetail.difference ?? 0, lang)}</strong></div>
+            </>
+          )}
+          {sessionDetail.note && <p style={{ marginTop: 10, color: 'var(--text-2)' }}>{sessionDetail.note}</p>}
+        </Modal>
       )}
 
       {detail && (
