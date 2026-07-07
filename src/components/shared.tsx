@@ -70,6 +70,39 @@ export function Modal({
   );
 }
 
+/* ---------- Drawer (side sliding panel) ---------- */
+export function Drawer({
+  title,
+  onClose,
+  children,
+}: {
+  title: ReactNode;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCloseRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  return (
+    <div className="drawer-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <aside className="drawer" role="dialog" aria-modal="true">
+        <div className="drawer-head">
+          <h2>{title}</h2>
+          <button className="x-btn" onClick={onClose} aria-label="Fermer">✕</button>
+        </div>
+        <div className="drawer-body">{children}</div>
+      </aside>
+    </div>
+  );
+}
+
 /* ---------- Toggle switch ---------- */
 export function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (

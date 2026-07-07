@@ -552,6 +552,67 @@ table.data tr.clickable:active td { background: var(--brand-100); }
 }
 
 /* =====================================================================
+   Drawer — side sliding panel
+   ===================================================================== */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 14, 12, 0.5);
+  z-index: 110;
+  backdrop-filter: blur(3px);
+  animation: backdrop-in var(--dur) var(--ease-out) both;
+}
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  inset-inline-end: 0;
+  width: min(440px, 92vw);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: drawer-in var(--dur-slow) var(--ease-out) both;
+}
+@keyframes drawer-in { from { transform: translateX(100%); } to { transform: none; } }
+[dir='rtl'] .drawer { animation-name: drawer-in-rtl; }
+@keyframes drawer-in-rtl { from { transform: translateX(-100%); } to { transform: none; } }
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.drawer-head h2 { font-size: 1.1rem; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* compact session trigger chip (opens the drawer) */
+.session-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-50);
+  border: 1.5px solid #b7ecc9;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--accent-dark);
+  flex-shrink: 0;
+  transition: transform var(--dur-fast) var(--ease-standard), background var(--dur) var(--ease-standard);
+}
+.session-chip:active { transform: scale(0.99); }
+@media (hover: hover) { .session-chip:hover { background: #ddf6e6; } }
+.session-chip .sch-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(23, 163, 74, 0.22); flex-shrink: 0; }
+.session-chip .sch-label { color: var(--ink); }
+.session-chip .sch-amount { margin-inline-start: auto; font-variant-numeric: tabular-nums; font-size: 0.98rem; }
+.session-chip .sch-chevron { color: var(--accent-dark); font-size: 1.1rem; }
+[dir='rtl'] .session-chip .sch-chevron { transform: scaleX(-1); }
+
+/* =====================================================================
    Numpad
    ===================================================================== */
 .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -743,7 +804,7 @@ table.data tr.clickable:active td { background: var(--brand-100); }
 /* photo / gradient header */
 .prod-card .pc-media {
   position: relative;
-  height: 72px;
+  height: 92px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   overflow: hidden;
   display: flex;
@@ -752,11 +813,13 @@ table.data tr.clickable:active td { background: var(--brand-100); }
   background-size: cover;
   background-position: center;
 }
-.prod-card .pc-media .pc-emoji { font-size: 2rem; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25)); }
+.prod-card .pc-media .pc-emoji { font-size: 2.2rem; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25)); }
+/* red circular add button, centered and overlapping the photo bottom edge */
 .prod-card .pc-add {
   position: absolute;
-  bottom: -15px;
-  inset-inline-end: 10px;
+  bottom: -17px;
+  inset-inline-start: 50%;
+  margin-inline-start: -17px;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -765,18 +828,18 @@ table.data tr.clickable:active td { background: var(--brand-100); }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
   box-shadow: var(--shadow-brand);
-  border: 2.5px solid var(--surface);
+  border: 3px solid var(--surface);
   transition: transform var(--dur-fast) var(--ease-standard), background var(--dur) var(--ease-standard);
   z-index: 2;
 }
-.prod-card:active .pc-add { transform: scale(0.88); background: var(--brand-700); }
-.prod-card .pc-body { padding: 10px 11px 10px; display: flex; flex-direction: column; gap: 1px; }
-.prod-card .pc-name { font-weight: 700; font-size: 0.85rem; line-height: 1.25; margin-bottom: 2px; }
-.prod-card .pc-price { color: var(--brand-700); font-weight: 800; font-size: 0.9rem; letter-spacing: -0.01em; }
-.prod-card .pc-stock { font-size: 0.68rem; color: var(--ink-2); }
+.prod-card:active .pc-add { transform: scale(0.86); background: var(--brand-700); }
+.prod-card .pc-body { padding: 20px 10px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.prod-card .pc-name { font-weight: 700; font-size: 0.88rem; line-height: 1.25; margin-bottom: 1px; }
+.prod-card .pc-price { color: var(--brand-700); font-weight: 800; font-size: 0.95rem; letter-spacing: -0.01em; }
+.prod-card .pc-stock { font-size: 0.68rem; color: var(--ink-3); }
 .prod-card.low .pc-stock { color: var(--amber-dark); font-weight: 700; }
 .prod-card .pc-lowbadge {
   position: absolute; top: 6px; inset-inline-start: 6px; z-index: 2;
@@ -824,34 +887,36 @@ table.data tr.clickable:active td { background: var(--brand-100); }
 .cart-totals .row.grand { font-size: 1.3rem; font-weight: 800; color: var(--brand-800); letter-spacing: -0.01em; }
 .cart-actions { display: flex; gap: 10px; padding: 0 16px 16px; }
 
-/* Premium full-width checkout CTA */
+/* Premium full-width checkout CTA (brand red, matching the reference) */
 .btn-checkout {
   width: 100%;
-  min-height: 52px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(120deg, var(--accent), var(--accent-dark));
+  min-height: 54px;
+  border-radius: var(--radius);
+  background: linear-gradient(120deg, var(--brand-600), var(--brand-800));
   color: #fff;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: var(--shadow-success);
+  box-shadow: var(--shadow-brand);
   transition: transform var(--dur-fast) var(--ease-standard), filter var(--dur) var(--ease-standard);
 }
 .btn-checkout:active { transform: scale(0.98); }
-@media (hover: hover) { .btn-checkout:hover { filter: brightness(1.05); } }
+@media (hover: hover) { .btn-checkout:hover { filter: brightness(1.06); } }
 .btn-checkout:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: none; box-shadow: none; }
 
 @media (max-width: 900px) {
   .pos { flex-direction: column; }
   .pos-left { flex: 1; }
-  .pos-cart { width: 100%; max-height: 40%; border-radius: var(--radius); }
-  .product-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 9px; }
-  .prod-card .pc-media { height: 66px; }
-  .prod-card .pc-body { padding: 8px 9px; }
+  .pos-cart { width: 100%; max-height: 42%; border-radius: var(--radius); }
+  .product-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .prod-card .pc-media { height: 88px; }
   .cart-actions { position: sticky; bottom: 0; background: var(--surface); padding-top: 8px; }
+}
+@media (max-width: 380px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* =====================================================================

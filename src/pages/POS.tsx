@@ -14,7 +14,7 @@ import {
 } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
-import { Empty, Modal, NumPad, ProductGridSkeleton, useToast } from '../components/shared';
+import { Drawer, Empty, Modal, NumPad, ProductGridSkeleton, useToast } from '../components/shared';
 import { printSaleTicket, printSessionReport } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
 import { productImage } from '../productImages';
@@ -45,6 +45,7 @@ export default function POS({ user }: { user: User }) {
   const [closeModal, setCloseModal] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CashSession | null>(null);
   const [scanModal, setScanModal] = useState(false);
+  const [sessionDrawer, setSessionDrawer] = useState(false);
 
   const visible = useMemo(() => {
     let list = products;
@@ -152,29 +153,12 @@ export default function POS({ user }: { user: User }) {
 
   return (
     <div className="pos-page">
-      <div className="session-card">
-        <div className="sc-top">
-          <div>
-            <div className="sc-title">{t('cashSession')}</div>
-            <div className="sc-meta">
-              {t('openedSince')} {t('by')} {session.openedByName}
-              <br />
-              {fmtDateTime(session.openedAt, lang)}
-            </div>
-            <span className="session-pill"><span className="dot" /> {t('ongoing')}</span>
-          </div>
-          <div className="sc-icon" aria-hidden="true">🗄️</div>
-        </div>
-        <div className="sc-amount-row">
-          <span className="sc-amount-label">{t('openingAmount')}</span>
-          <span className="sc-amount">{fmtDH(session.openingAmount, lang)}</span>
-        </div>
-        <div className="sc-divider" />
-        <div className="sc-actions">
-          <button className="sc-btn sc-btn-close" onClick={() => setCloseModal(true)}>🔒 {t('closeRegister')}</button>
-          <button className="sc-btn sc-btn-cash" onClick={() => setMovementModal(true)}>💵 {t('cashMovement')}</button>
-        </div>
-      </div>
+      <button className="session-chip" onClick={() => setSessionDrawer(true)}>
+        <span className="sch-dot" />
+        <span className="sch-label">{t('registerOpenedDone')}</span>
+        <span className="sch-amount">{fmtDH(session.openingAmount, lang)}</span>
+        <span className="sch-chevron" aria-hidden="true">›</span>
+      </button>
       <div className="pos">
       <div className="pos-left">
         <div className="pos-search">
@@ -308,6 +292,37 @@ export default function POS({ user }: { user: User }) {
         </Modal>
       )}
       </div>
+
+      {sessionDrawer && (
+        <Drawer title={`🗄️ ${t('cashSession')}`} onClose={() => setSessionDrawer(false)}>
+          <div className="session-card" style={{ boxShadow: 'none' }}>
+            <div className="sc-top">
+              <div>
+                <div className="sc-title">{t('registerOpenedDone')}</div>
+                <div className="sc-meta">
+                  {t('openedSince')} {t('by')} {session.openedByName}
+                  <br />
+                  {fmtDateTime(session.openedAt, lang)}
+                </div>
+                <span className="session-pill"><span className="dot" /> {t('ongoing')}</span>
+              </div>
+              <div className="sc-icon" aria-hidden="true">🗄️</div>
+            </div>
+            <div className="sc-amount-row">
+              <span className="sc-amount-label">{t('openingAmount')}</span>
+              <span className="sc-amount">{fmtDH(session.openingAmount, lang)}</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+            <button className="btn btn-ghost btn-block" onClick={() => { setSessionDrawer(false); setMovementModal(true); }}>
+              💵 {t('cashMovement')}
+            </button>
+            <button className="btn btn-danger btn-block" onClick={() => { setSessionDrawer(false); setCloseModal(true); }}>
+              🔒 {t('closeRegister')}
+            </button>
+          </div>
+        </Drawer>
+      )}
 
       {scanModal && (
         <ScanModal
