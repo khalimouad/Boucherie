@@ -43,6 +43,7 @@ export default function POS({ user }: { user: User }) {
   const [movementModal, setMovementModal] = useState(false);
   const [closeModal, setCloseModal] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CashSession | null>(null);
+  const [scanModal, setScanModal] = useState(false);
 
   const visible = useMemo(() => {
     let list = products;
@@ -150,27 +151,43 @@ export default function POS({ user }: { user: User }) {
 
   return (
     <div className="pos-page">
-      <div className="session-bar">
-        <div className="sb-info">
-          <span className="sb-lock" aria-hidden="true">🔓</span>
-          <span>
-            {t('openedSince')} {fmtDateTime(session.openedAt, lang)} — {t('by')} {session.openedByName}
-          </span>
-          <span className="sb-amount">{t('openingAmount')}: {fmtDH(session.openingAmount, lang)}</span>
+      <div className="session-card">
+        <div className="sc-top">
+          <div>
+            <div className="sc-title">{t('cashSession')}</div>
+            <div className="sc-meta">
+              {t('openedSince')} {t('by')} {session.openedByName}
+              <br />
+              {fmtDateTime(session.openedAt, lang)}
+            </div>
+            <span className="session-pill"><span className="dot" /> {t('ongoing')}</span>
+          </div>
+          <div className="sc-icon" aria-hidden="true">🗄️</div>
         </div>
-        <div className="sb-actions">
-          <button className="btn btn-ghost btn-sm" onClick={() => setMovementModal(true)}>💰 {t('cashMovement')}</button>
-          <button className="btn btn-danger btn-sm" onClick={() => setCloseModal(true)}>🔒 {t('closeRegister')}</button>
+        <div className="sc-amount-row">
+          <span className="sc-amount-label">{t('openingAmount')}</span>
+          <span className="sc-amount">{fmtDH(session.openingAmount, lang)}</span>
+        </div>
+        <div className="sc-divider" />
+        <div className="sc-actions">
+          <button className="sc-btn sc-btn-close" onClick={() => setCloseModal(true)}>🔒 {t('closeRegister')}</button>
+          <button className="sc-btn sc-btn-cash" onClick={() => setMovementModal(true)}>💵 {t('cashMovement')}</button>
         </div>
       </div>
       <div className="pos">
       <div className="pos-left">
-        <div className="filters" style={{ marginBottom: 10 }}>
-          <input placeholder={t('search')} value={query} onChange={(e) => setQuery(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
+        <div className="pos-search">
+          <div className="search-field">
+            <span className="search-ico" aria-hidden="true">🔍</span>
+            <input placeholder={t('search')} value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+          {barcodeCfg.enabled && (
+            <button className="scan-btn" onClick={() => setScanModal(true)} aria-label={t('barcodeTest')} title={t('barcode')}>▥</button>
+          )}
         </div>
         <div className="cat-chips">
           <button className={`cat-chip ${catFilter === null ? 'on' : ''}`} onClick={() => setCatFilter(null)}>
-            {t('all')}
+            ▦ {t('all')}
           </button>
           {categories.map((c) => (
             <button key={c.id} className={`cat-chip ${catFilter === c.id ? 'on' : ''}`} onClick={() => setCatFilter(c.id!)}>
@@ -184,21 +201,32 @@ export default function POS({ user }: { user: User }) {
           <Empty icon="🔍" />
         ) : (
           <div className="product-grid">
-            {visible.map((p) => (
-              <button key={p.id} className={`prod-card ${p.stock <= p.lowStock ? 'low' : ''}`} onClick={() => setQtyModal(p)}>
-                <span className="pc-band" style={{ background: catColor(p.categoryId) }} />
-                <span className="pc-icon">{categories.find((c) => c.id === p.categoryId)?.icon ?? '🥩'}</span>
-                <span className="pc-name">{localName(p, lang)}</span>
-                <span>
-                  <span className="pc-price">{fmtDH(p.price, lang)}{p.unit === 'kg' ? t('perKg') : t('perPiece')}</span>
-                  <br />
-                  <span className="pc-stock">
-                    {t('stock')}: {fmtQty(p.stock, p.unit)} {p.unit === 'kg' ? t('kg') : ''}
-                    {p.stock <= p.lowStock ? ' ⚠️' : ''}
+            {visible.map((p) => {
+              const cat = categories.find((c) => c.id === p.categoryId);
+              return (
+                <button key={p.id} className={`prod-card ${p.stock <= p.lowStock ? 'low' : ''}`} onClick={() => setQtyModal(p)}>
+                  {p.stock <= p.lowStock && <span className="pc-lowbadge">{t('lowStockAlert')}</span>}
+                  <span
+                    className="pc-media"
+                    style={
+                      p.image
+                        ? { backgroundImage: `url(${p.image})` }
+                        : { background: `linear-gradient(150deg, ${catColor(p.categoryId)}, ${catColor(p.categoryId)}bb)` }
+                    }
+                  >
+                    {!p.image && <span className="pc-emoji">{cat?.icon ?? '🥩'}</span>}
+                    <span className="pc-add" aria-hidden="true">＋</span>
                   </span>
-                </span>
-              </button>
-            ))}
+                  <span className="pc-body">
+                    <span className="pc-name">{localName(p, lang)}</span>
+                    <span className="pc-price">{fmtDH(p.price, lang)}{p.unit === 'kg' ? t('perKg') : t('perPiece')}</span>
+                    <span className="pc-stock">
+                      {t('stock')}: {fmtQty(p.stock, p.unit)} {p.unit === 'kg' ? t('kg') : ''}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -235,7 +263,7 @@ export default function POS({ user }: { user: User }) {
           </div>
         </div>
         <div className="cart-actions">
-          <button className="btn btn-success btn-lg btn-block" disabled={cart.length === 0} onClick={() => setPayModal(true)}>
+          <button className="btn-checkout" disabled={cart.length === 0} onClick={() => setPayModal(true)}>
             💵 {t('pay')}
           </button>
         </div>
@@ -284,6 +312,16 @@ export default function POS({ user }: { user: User }) {
         </Modal>
       )}
       </div>
+
+      {scanModal && (
+        <ScanModal
+          onClose={() => setScanModal(false)}
+          onScan={(code) => {
+            setScanModal(false);
+            onScan(code);
+          }}
+        />
+      )}
 
       {movementModal && (
         <CashMovementModal
@@ -475,6 +513,28 @@ function CloseRegisterModal({
         <label>{t('note')}</label>
         <input value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
+    </Modal>
+  );
+}
+
+/* Manual barcode / PLU entry — for hand-keying a scale label when no scanner is at hand. */
+function ScanModal({ onClose, onScan }: { onClose: () => void; onScan: (code: string) => void }) {
+  const { t } = useI18n();
+  const [val, setVal] = useState('');
+  return (
+    <Modal
+      title={`▥ ${t('barcode')}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>{t('cancel')}</button>
+          <button className="btn btn-primary" disabled={val.length < 3} onClick={() => onScan(val)}>{t('add')}</button>
+        </>
+      }
+    >
+      <label>{t('barcodeTestPlaceholder')}</label>
+      <div className="numpad-display">{val || '—'}</div>
+      <NumPad value={val} onChange={setVal} allowDecimal={false} maxLen={13} />
     </Modal>
   );
 }

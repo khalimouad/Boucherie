@@ -235,6 +235,8 @@ const dict = {
   barcodeTest: { fr: 'Tester un code-barres', ar: 'جرب باركود' },
   barcodeTestPlaceholder: { fr: 'Tapez ou scannez un code ici…', ar: 'كتب ولا سكاني كود هنا…' },
   productCode: { fr: 'Code balance / PLU', ar: 'كود الميزان / PLU' },
+  photo: { fr: 'Photo', ar: 'صورة' },
+  removePhoto: { fr: 'Retirer la photo', ar: 'حيّد الصورة' },
   scanAdded: { fr: 'Article scanné ajouté', ar: 'تزادت السلعة المسكانية' },
   scanUnknown: { fr: 'Code-barres inconnu', ar: 'باركود ماشي معروف' },
 

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, uid, type Category, type Product, type Unit } from '../db';
 import { localName, useI18n } from '../i18n';
-import { fmtDH, fmtQty } from '../utils';
+import { fmtDH, fmtQty, downscaleImage } from '../utils';
 import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
 
 const COLORS = ['#b91c1c', '#c2410c', '#ca8a04', '#15803d', '#0e7490', '#1d4ed8', '#7e22ce', '#be185d'];
@@ -20,6 +20,7 @@ export default function Products() {
   const [query, setQuery] = useState('');
   const [editProd, setEditProd] = useState<Partial<Product> | null>(null);
   const [editCat, setEditCat] = useState<Partial<Category> | null>(null);
+  const imgRef = useRef<HTMLInputElement>(null);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,6 +45,7 @@ export default function Products() {
       stock: Number(editProd.stock) || 0,
       lowStock: Number(editProd.lowStock) || 0,
       code: (editProd.code ?? '').replace(/\D/g, ''),
+      image: editProd.image || undefined,
       active: editProd.active ?? true,
     };
     if (editProd.id) await db.products.update(editProd.id, data);
@@ -112,6 +114,7 @@ export default function Products() {
                   {visible.map((p) => (
                     <tr key={p.id}>
                       <td className="card-title">
+                        {p.image && <img className="prod-thumb" src={p.image} alt="" />}
                         <strong>{localName(p, lang)}</strong>
                         {!p.active && <span className="badge gray" style={{ marginInlineStart: 6 }}>{t('inactive')}</span>}
                       </td>
@@ -199,6 +202,35 @@ export default function Products() {
             </>
           }
         >
+          <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div className="prod-photo-slot" style={editProd.image ? { backgroundImage: `url(${editProd.image})` } : undefined}>
+              {!editProd.image && <span>📷</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <input
+                ref={imgRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    try {
+                      const img = await downscaleImage(file);
+                      setEditProd((prev) => (prev ? { ...prev, image: img } : prev));
+                    } catch {
+                      toast(t('required'), 'info');
+                    }
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <button className="btn btn-ghost" onClick={() => imgRef.current?.click()}>🖼 {t('photo')}</button>
+              {editProd.image && (
+                <button className="btn btn-danger" onClick={() => setEditProd({ ...editProd, image: undefined })}>{t('removePhoto')}</button>
+              )}
+            </div>
+          </div>
           <div className="grid-2">
             <div className="field">
               <label>{t('nameFr')} *</label>

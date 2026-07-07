@@ -40,6 +40,7 @@ export interface Product extends Synced {
   stock: number; // in kg or pieces
   lowStock: number;
   code: string; // scale PLU / barcode item code (digits)
+  image?: string; // optional product photo (downscaled dataURL)
   active: boolean;
 }
 

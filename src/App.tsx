@@ -105,6 +105,10 @@ export default function App() {
         <div className="main">
           <header className="topbar">
             <h1>{t(allowed.find((n) => n.id === current)!.label)}</h1>
+            <div className="topbar-brand">
+              <span className="tb-logo" aria-hidden="true">🥩</span>
+              <span className="tb-name">{t('appName')}</span>
+            </div>
             <div className="topbar-right">
               <span
                 className="sync-dot"

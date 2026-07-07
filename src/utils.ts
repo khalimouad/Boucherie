@@ -1,5 +1,31 @@
 import type { Lang } from './i18n';
 
+/** Read an image File, downscale/crop it to a square dataURL kept small enough
+ * for IndexedDB + cloud sync. Used for product photos and (indirectly) logos. */
+export function downscaleImage(file: File, size = 400, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('decode failed'));
+      img.onload = () => {
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 /** Format a number as Moroccan Dirhams, always 2 decimals: "1 234,56 DH" / "1 234,56 د.م." */
 export function fmtDH(n: number, lang: Lang = 'fr'): string {
   const v = (Number.isFinite(n) ? n : 0).toFixed(2);
