@@ -203,7 +203,7 @@ export default function Products() {
           }
         >
           <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div className="prod-photo-slot" style={editProd.image ? { backgroundImage: `url(${editProd.image})` } : undefined}>
+            <div className="prod-photo-slot" style={editProd.image ? { backgroundImage: `url("${editProd.image}")` } : undefined}>
               {!editProd.image && <span>📷</span>}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

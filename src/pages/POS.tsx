@@ -17,6 +17,7 @@ import { fmtDH, fmtDateTime, fmtQty, genTicketNumber, round2, todayISO } from '.
 import { Empty, Modal, NumPad, ProductGridSkeleton, useToast } from '../components/shared';
 import { printSaleTicket, printSessionReport } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
+import { productImage } from '../productImages';
 import { openDrawerViaBridge } from '../printBridge';
 import { addCashMovement, closeSession, computeSessionTotals, openSession } from '../cashSession';
 import type { CashMovementType, CashSession } from '../db';
@@ -208,13 +209,8 @@ export default function POS({ user }: { user: User }) {
                   {p.stock <= p.lowStock && <span className="pc-lowbadge">{t('lowStockAlert')}</span>}
                   <span
                     className="pc-media"
-                    style={
-                      p.image
-                        ? { backgroundImage: `url(${p.image})` }
-                        : { background: `linear-gradient(150deg, ${catColor(p.categoryId)}, ${catColor(p.categoryId)}bb)` }
-                    }
+                    style={{ backgroundImage: `url("${p.image || productImage(cat?.icon ?? '🥩', catColor(p.categoryId))}")` }}
                   >
-                    {!p.image && <span className="pc-emoji">{cat?.icon ?? '🥩'}</span>}
                     <span className="pc-add" aria-hidden="true">＋</span>
                   </span>
                   <span className="pc-body">
