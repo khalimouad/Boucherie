@@ -15,6 +15,7 @@ import {
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
 import { Drawer, Empty, Modal, NumPad, ProductGridSkeleton, useToast } from '../components/shared';
+import { Icon } from '../components/Icon';
 import { printSaleTicket, printSessionReport } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
 import { productImage } from '../productImages';
@@ -163,16 +164,16 @@ export default function POS({ user }: { user: User }) {
       <div className="pos-left">
         <div className="pos-search">
           <div className="search-field">
-            <span className="search-ico" aria-hidden="true">🔍</span>
+            <span className="search-ico"><Icon name="search" size={18} /></span>
             <input placeholder={t('search')} value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           {barcodeCfg.enabled && (
-            <button className="scan-btn" onClick={() => setScanModal(true)} aria-label={t('barcodeTest')} title={t('barcode')}>▥</button>
+            <button className="scan-btn" onClick={() => setScanModal(true)} aria-label={t('barcode')} title={t('barcode')}><Icon name="barcode" size={22} /></button>
           )}
         </div>
         <div className="cat-chips">
           <button className={`cat-chip ${catFilter === null ? 'on' : ''}`} onClick={() => setCatFilter(null)}>
-            ▦ {t('all')}
+            <Icon name="grid" size={16} /> {t('all')}
           </button>
           {categories.map((c) => (
             <button key={c.id} className={`cat-chip ${catFilter === c.id ? 'on' : ''}`} onClick={() => setCatFilter(c.id!)}>
@@ -195,7 +196,7 @@ export default function POS({ user }: { user: User }) {
                     className="pc-media"
                     style={{ backgroundImage: `url("${p.image || productImage(cat?.icon ?? '🥩', catColor(p.categoryId))}")` }}
                   >
-                    <span className="pc-add" aria-hidden="true">＋</span>
+                    <span className="pc-add" aria-hidden="true"><Icon name="plus" size={18} strokeWidth={2.5} /></span>
                   </span>
                   <span className="pc-body">
                     <span className="pc-name">{localName(p, lang)}</span>
@@ -213,11 +214,11 @@ export default function POS({ user }: { user: User }) {
 
       <div className="pos-cart">
         <div className="cart-head">
-          <h2>🧺 {t('cart')} ({cart.length})</h2>
+          <h2><Icon name="basket" size={20} /> {t('cart')} ({cart.length})</h2>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-icon sm" onClick={handleOpenDrawer} aria-label={t('openDrawer')} title={t('openDrawer')}>🗄️</button>
+            <button className="btn-icon sm" onClick={handleOpenDrawer} aria-label={t('openDrawer')} title={t('openDrawer')}><Icon name="drawer" size={19} /></button>
             {cart.length > 0 && (
-              <button className="btn btn-danger btn-sm" onClick={() => setCart([])}>{t('clearCart')}</button>
+              <button className="btn-icon sm btn-icon-danger" onClick={() => setCart([])} aria-label={t('clearCart')} title={t('clearCart')}><Icon name="trash" size={18} /></button>
             )}
           </div>
         </div>
@@ -232,7 +233,7 @@ export default function POS({ user }: { user: User }) {
                 </div>
               </div>
               <div className="cl-total">{fmtDH(l.total, lang)}</div>
-              <button className="cl-del" aria-label={t('delete')} onClick={() => setCart((c) => c.filter((x) => x.key !== l.key))}>🗑</button>
+              <button className="cl-del" aria-label={t('delete')} onClick={() => setCart((c) => c.filter((x) => x.key !== l.key))}><Icon name="trash" size={17} /></button>
             </div>
           ))}
         </div>
@@ -244,7 +245,7 @@ export default function POS({ user }: { user: User }) {
         </div>
         <div className="cart-actions">
           <button className="btn-checkout" disabled={cart.length === 0} onClick={() => setPayModal(true)}>
-            💵 {t('pay')}
+            <Icon name="cash" size={20} /> {t('pay')}
           </button>
         </div>
       </div>
@@ -315,10 +316,10 @@ export default function POS({ user }: { user: User }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
             <button className="btn btn-ghost btn-block" onClick={() => { setSessionDrawer(false); setMovementModal(true); }}>
-              💵 {t('cashMovement')}
+              <Icon name="coins" size={18} /> {t('cashMovement')}
             </button>
             <button className="btn btn-danger btn-block" onClick={() => { setSessionDrawer(false); setCloseModal(true); }}>
-              🔒 {t('closeRegister')}
+              <Icon name="lock" size={18} /> {t('closeRegister')}
             </button>
           </div>
         </Drawer>

@@ -237,6 +237,7 @@ const dict = {
   productCode: { fr: 'Code balance / PLU', ar: 'كود الميزان / PLU' },
   photo: { fr: 'Photo', ar: 'صورة' },
   removePhoto: { fr: 'Retirer la photo', ar: 'حيّد الصورة' },
+  menu: { fr: 'Menu', ar: 'القائمة' },
   scanAdded: { fr: 'Article scanné ajouté', ar: 'تزادت السلعة المسكانية' },
   scanUnknown: { fr: 'Code-barres inconnu', ar: 'باركود ماشي معروف' },
 
