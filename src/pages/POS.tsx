@@ -87,10 +87,10 @@ export default function POS({ user }: { user: User }) {
       }
       if (res.qty !== null) {
         addLine(res.product, res.qty);
-        toast(`✅ ${t('scanAdded')}: ${localName(res.product, lang)}`);
+        toast(`${t('scanAdded')}: ${localName(res.product, lang)}`);
       } else if (res.product.unit === 'piece') {
         addLine(res.product, 1);
-        toast(`✅ ${t('scanAdded')}: ${localName(res.product, lang)}`);
+        toast(`${t('scanAdded')}: ${localName(res.product, lang)}`);
       } else {
         setQtyModal(res.product);
       }
@@ -196,7 +196,7 @@ export default function POS({ user }: { user: User }) {
                     className="pc-media"
                     style={{ backgroundImage: `url("${p.image || productImage(cat?.icon ?? '🥩', catColor(p.categoryId))}")` }}
                   >
-                    <span className="pc-add" aria-hidden="true"><Icon name="plus" size={18} strokeWidth={2.5} /></span>
+                    <span className="pc-add" aria-hidden="true"><Icon name="plus" size={18} /></span>
                   </span>
                   <span className="pc-body">
                     <span className="pc-name">{localName(p, lang)}</span>
@@ -267,7 +267,7 @@ export default function POS({ user }: { user: User }) {
 
       {doneSale && (
         <Modal
-          title={`✅ ${t('saleDone')}`}
+          title={`${t('saleDone')}`}
           onClose={() => setDoneSale(null)}
           footer={
             <>
@@ -275,7 +275,7 @@ export default function POS({ user }: { user: User }) {
                 className="btn btn-ghost"
                 onClick={async () => printSaleTicket(doneSale, await getTicketSettings(), true)}
               >
-                🖨 {t('reprint')}
+                <Icon name="printer" size={18} /> {t('reprint')}
               </button>
               <button className="btn btn-primary" onClick={() => setDoneSale(null)}>
                 {t('newSale')}
@@ -295,7 +295,7 @@ export default function POS({ user }: { user: User }) {
       </div>
 
       {sessionDrawer && (
-        <Drawer title={`🗄️ ${t('cashSession')}`} onClose={() => setSessionDrawer(false)}>
+        <Drawer title={`${t('cashSession')}`} onClose={() => setSessionDrawer(false)}>
           <div className="session-card" style={{ boxShadow: 'none' }}>
             <div className="sc-top">
               <div>
@@ -307,7 +307,7 @@ export default function POS({ user }: { user: User }) {
                 </div>
                 <span className="session-pill"><span className="dot" /> {t('ongoing')}</span>
               </div>
-              <div className="sc-icon" aria-hidden="true">🗄️</div>
+              <div className="sc-icon" aria-hidden="true"><Icon name="drawer" size={20} /></div>
             </div>
             <div className="sc-amount-row">
               <span className="sc-amount-label">{t('openingAmount')}</span>
@@ -372,12 +372,12 @@ function ClosedSummaryModal({ session, onClose }: { session: CashSession; onClos
   const diff = session.difference ?? 0;
   return (
     <Modal
-      title={`🔒 ${t('registerClosedDone')}`}
+      title={`${t('registerClosedDone')}`}
       onClose={onClose}
       footer={
         <>
           <button className="btn btn-ghost" onClick={async () => printSessionReport(session, await getTicketSettings())}>
-            🖨 {t('printReport')}
+            <Icon name="printer" size={18} /> {t('printReport')}
           </button>
           <button className="btn btn-primary" onClick={onClose}>
             {t('close')}
@@ -410,14 +410,14 @@ function OpenRegisterScreen({ user }: { user: User }) {
   return (
     <div className="login-screen" style={{ minHeight: 'calc(100vh - 140px)' }}>
       <div className="login-card">
-        <div className="login-logo">🗄️</div>
+        <div className="login-logo" style={{ color: 'var(--brand-700)' }}><Icon name="drawer" size={54} /></div>
         <div className="login-title">{t('registerClosed')}</div>
         <div className="login-sub">{t('registerClosedHint')}</div>
         <label>{t('openingAmount')}</label>
         <div className="numpad-display">{val || '0'} {lang === 'ar' ? 'د.م.' : 'DH'}</div>
         <NumPad value={val} onChange={setVal} />
         <button className="btn btn-success btn-lg btn-block" style={{ marginTop: 14 }} onClick={confirm}>
-          🔓 {t('openRegister')}
+          <Icon name="lock" size={20} /> {t('openRegister')}
         </button>
       </div>
     </div>
@@ -439,7 +439,7 @@ function CashMovementModal({
 
   return (
     <Modal
-      title={`💰 ${t('cashMovement')}`}
+      title={`${t('cashMovement')}`}
       onClose={onClose}
       footer={
         <>
@@ -452,11 +452,11 @@ function CashMovementModal({
     >
       <div className="pay-methods" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
         <button className={`pay-method ${type === 'in' ? 'on' : ''}`} onClick={() => setType('in')}>
-          <span className="pm-icon">⬇️</span>
+          <span className="pm-icon"><Icon name="cash" size={22} /></span>
           {t('cashIn')}
         </button>
         <button className={`pay-method ${type === 'out' ? 'on' : ''}`} onClick={() => setType('out')}>
-          <span className="pm-icon">⬆️</span>
+          <span className="pm-icon"><Icon name="coins" size={22} /></span>
           {t('cashOut')}
         </button>
       </div>
@@ -493,7 +493,7 @@ function CloseRegisterModal({
 
   return (
     <Modal
-      title={`🔒 ${t('closeRegister')}`}
+      title={`${t('closeRegister')}`}
       onClose={onClose}
       footer={
         <>
@@ -535,7 +535,7 @@ function ScanModal({ onClose, onScan }: { onClose: () => void; onScan: (code: st
   const [val, setVal] = useState('');
   return (
     <Modal
-      title={`▥ ${t('barcode')}`}
+      title={`${t('barcode')}`}
       onClose={onClose}
       footer={
         <>
@@ -577,10 +577,10 @@ function QtyModal({ product, onClose, onAdd }: { product: Product; onClose: () =
       {product.unit === 'kg' && (
         <div className="seg" style={{ marginBottom: 12, width: '100%', display: 'flex' }}>
           <button className={mode === 'qty' ? 'on' : ''} style={{ flex: 1 }} onClick={() => { setMode('qty'); setVal(''); }}>
-            ⚖️ {t('byWeight')}
+            <Icon name="scale" size={17} /> {t('byWeight')}
           </button>
           <button className={mode === 'amount' ? 'on' : ''} style={{ flex: 1 }} onClick={() => { setMode('amount'); setVal(''); }}>
-            💰 {t('byAmount')}
+            <Icon name="cash" size={17} /> {t('byAmount')}
           </button>
         </div>
       )}
@@ -623,10 +623,10 @@ function PayModal({
     (v, i, a) => a.indexOf(v) === i,
   );
 
-  const methods: { id: PaymentMethod; icon: string; label: string }[] = [
-    { id: 'cash', icon: '💵', label: t('cash') },
-    { id: 'card', icon: '💳', label: t('card') },
-    { id: 'credit', icon: '📒', label: t('credit') },
+  const methods: { id: PaymentMethod; icon: 'cash' | 'card' | 'credit'; label: string }[] = [
+    { id: 'cash', icon: 'cash', label: t('cash') },
+    { id: 'card', icon: 'card', label: t('card') },
+    { id: 'credit', icon: 'credit', label: t('credit') },
   ];
 
   return (
@@ -637,7 +637,7 @@ function PayModal({
         <>
           <button className="btn btn-ghost" onClick={onClose}>{t('cancel')}</button>
           <button className="btn btn-success" disabled={!canConfirm} onClick={() => onConfirm(payment, payment === 'cash' ? paid : total, discount)}>
-            ✅ {t('finishSale')}
+            <Icon name="check" size={18} /> {t('finishSale')}
           </button>
         </>
       }
@@ -645,7 +645,7 @@ function PayModal({
       <div className="pay-methods">
         {methods.map((m) => (
           <button key={m.id} className={`pay-method ${payment === m.id ? 'on' : ''}`} onClick={() => setPayment(m.id)}>
-            <span className="pm-icon">{m.icon}</span>
+            <span className="pm-icon"><Icon name={m.icon} size={22} /></span>
             {m.label}
           </button>
         ))}
@@ -653,7 +653,7 @@ function PayModal({
 
       {!showDiscount ? (
         <button className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }} onClick={() => setShowDiscount(true)}>
-          ➖ {t('discount')}
+          {t('discount')}
         </button>
       ) : (
         <div className="field">

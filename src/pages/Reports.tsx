@@ -4,6 +4,7 @@ import { db, getTicketSettings, type CashSession, type Sale } from '../db';
 import { localName, useI18n } from '../i18n';
 import { dateInputValue, downloadCSV, fmtDH, fmtDateTime, round2, startOfDay } from '../utils';
 import { Empty, Modal, useToast } from '../components/shared';
+import { Icon } from '../components/Icon';
 import { printSaleTicket, printSessionReport } from '../print';
 import { REASONS } from './Waste';
 
@@ -152,14 +153,14 @@ export default function Reports() {
     <div>
       <div className="page-head">
         <div className="seg">
-          <button className={tab === 'sales' ? 'on' : ''} onClick={() => setTab('sales')}>💵 {t('salesReport')}</button>
-          <button className={tab === 'purchases' ? 'on' : ''} onClick={() => setTab('purchases')}>🚚 {t('purchasesReport')}</button>
-          <button className={tab === 'waste' ? 'on' : ''} onClick={() => setTab('waste')}>⚖️ {t('wasteReport')}</button>
-          <button className={tab === 'sessions' ? 'on' : ''} onClick={() => setTab('sessions')}>🗄️ {t('cashSessionsReport')}</button>
+          <button className={tab === 'sales' ? 'on' : ''} onClick={() => setTab('sales')}><Icon name="cash" size={16} /> {t('salesReport')}</button>
+          <button className={tab === 'purchases' ? 'on' : ''} onClick={() => setTab('purchases')}><Icon name="truck" size={16} /> {t('purchasesReport')}</button>
+          <button className={tab === 'waste' ? 'on' : ''} onClick={() => setTab('waste')}><Icon name="scale" size={16} /> {t('wasteReport')}</button>
+          <button className={tab === 'sessions' ? 'on' : ''} onClick={() => setTab('sessions')}><Icon name="drawer" size={16} /> {t('cashSessionsReport')}</button>
         </div>
         <div className="ph-actions">
-          {tab === 'sales' && <button className="btn btn-ghost" onClick={exportSales}>⬇ {t('exportCsv')}</button>}
-          {tab === 'waste' && <button className="btn btn-ghost" onClick={exportWaste}>⬇ {t('exportCsv')}</button>}
+          {tab === 'sales' && <button className="btn btn-ghost" onClick={exportSales}>{t('exportCsv')}</button>}
+          {tab === 'waste' && <button className="btn btn-ghost" onClick={exportWaste}>{t('exportCsv')}</button>}
         </div>
       </div>
 
@@ -168,7 +169,7 @@ export default function Reports() {
           <button className={range === 'today' ? 'on' : ''} onClick={() => setRange('today')}>{t('today')}</button>
           <button className={range === 'week' ? 'on' : ''} onClick={() => setRange('week')}>{t('week')}</button>
           <button className={range === 'month' ? 'on' : ''} onClick={() => setRange('month')}>{t('month')}</button>
-          <button className={range === 'custom' ? 'on' : ''} onClick={() => setRange('custom')}>📅</button>
+          <button className={range === 'custom' ? 'on' : ''} onClick={() => setRange('custom')} aria-label={t('from')}><Icon name="edit" size={16} /></button>
         </div>
         {range === 'custom' && (
           <>
@@ -384,12 +385,12 @@ export default function Reports() {
 
       {sessionDetail && (
         <Modal
-          title={`🗄️ ${t('cashSession')}`}
+          title={`${t('cashSession')}`}
           onClose={() => setSessionDetail(null)}
           footer={
             sessionDetail.status === 'closed' ? (
               <button className="btn btn-primary" onClick={async () => printSessionReport(sessionDetail, await getTicketSettings())}>
-                🖨 {t('printReport')}
+                <Icon name="printer" size={18} /> {t('printReport')}
               </button>
             ) : undefined
           }
@@ -420,10 +421,10 @@ export default function Reports() {
           footer={
             <>
               {detail.status === 'done' && (
-                <button className="btn btn-danger" onClick={() => voidSale(detail)}>🚫 {t('voidSale')}</button>
+                <button className="btn btn-danger" onClick={() => voidSale(detail)}><Icon name="x" size={18} /> {t('voidSale')}</button>
               )}
               <button className="btn btn-primary" onClick={async () => printSaleTicket(detail, await getTicketSettings(), true)}>
-                🖨 {t('reprint')}
+                <Icon name="printer" size={18} /> {t('reprint')}
               </button>
             </>
           }

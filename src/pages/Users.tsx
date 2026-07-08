@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, hashPin, uid, type Role, type User } from '../db';
 import { useI18n } from '../i18n';
 import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
+import { Icon } from '../components/Icon';
 
 export default function Users({ currentUser }: { currentUser: User }) {
   const { t } = useI18n();
@@ -48,8 +49,8 @@ export default function Users({ currentUser }: { currentUser: User }) {
   return (
     <div>
       <div className="page-head">
-        <h2>👥 {t('navUsers')}</h2>
-        <button className="btn btn-primary" onClick={() => setEdit({ role: 'cashier', active: true })}>＋ {t('newUser')}</button>
+        <h2 className="page-title"><Icon name="users" size={22} /> {t('navUsers')}</h2>
+        <button className="btn btn-primary" onClick={() => setEdit({ role: 'cashier', active: true })}><Icon name="plus" size={18} /> {t('newUser')}</button>
       </div>
 
       <div className="card table-wrap">
@@ -72,11 +73,11 @@ export default function Users({ currentUser }: { currentUser: User }) {
                 <tr key={u.id}>
                   <td className="card-title">{u.name} {u.id === currentUser.id && '⭐'}</td>
                   <td data-label={t('role')}><span className={`badge ${u.role === 'admin' ? 'red' : u.role === 'manager' ? 'amber' : 'green'}`}>{t(u.role)}</span></td>
-                  <td data-label={t('active')}>{u.active ? '✅' : '⛔'}</td>
+                  <td data-label={t('active')}><span className={`badge ${u.active ? 'green' : 'gray'}`}>{u.active ? t('active') : t('inactive')}</span></td>
                   <td className="card-actions">
-                    <button className="btn-icon sm" onClick={() => setEdit({ ...u, newPin: '' })} aria-label={t('edit')}>✏️</button>{' '}
+                    <button className="btn-icon sm" onClick={() => setEdit({ ...u, newPin: '' })} aria-label={t('edit')}><Icon name="edit" size={17} /></button>{' '}
                     {u.id !== currentUser.id && (
-                      <button className="btn-icon sm btn-icon-danger" onClick={() => remove(u)} aria-label={t('delete')}>🗑</button>
+                      <button className="btn-icon sm btn-icon-danger" onClick={() => remove(u)} aria-label={t('delete')}><Icon name="trash" size={17} /></button>
                     )}
                   </td>
                 </tr>
@@ -88,7 +89,7 @@ export default function Users({ currentUser }: { currentUser: User }) {
 
       {edit && (
         <Modal
-          title={edit.id ? `✏️ ${t('edit')}` : `＋ ${t('newUser')}`}
+          title={edit.id ? `${t('edit')}` : `${t('newUser')}`}
           onClose={() => setEdit(null)}
           footer={
             <>

@@ -16,6 +16,7 @@ import {
 } from '../db';
 import { useI18n, localName } from '../i18n';
 import { Modal, Switch, useToast } from '../components/shared';
+import { Icon } from '../components/Icon';
 import { buildTicketHTML, printHTML } from '../print';
 import { CLOUD_EMAIL, disableSync, enableSync, getSyncStatus, subscribeSync, syncNow } from '../sync';
 import { bridgePing, testPrintViaBridge } from '../printBridge';
@@ -62,7 +63,7 @@ function CloudCard() {
 
   return (
     <div className="card card-pad" style={{ marginBottom: 14 }}>
-      <h2>☁️ {t('cloudSync')}</h2>
+      <h2 className="page-title"><Icon name="cloud" size={20} /> {t('cloudSync')}</h2>
       <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('cloudHint')}</p>
       <div className="switch-row" style={{ borderBottom: 'none', paddingTop: 0 }}>
         <span>
@@ -88,13 +89,13 @@ function CloudCard() {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" />
           </div>
           <button className="btn btn-primary" disabled={!password || busy} onClick={activate}>
-            ☁️ {t('cloudEnable')}
+            <Icon name="cloud" size={17} /> {t('cloudEnable')}
           </button>
         </>
       ) : (
         <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
           <button className="btn btn-ghost" disabled={status.syncing} onClick={() => void syncNow()}>
-            🔄 {t('syncNow')}
+            <Icon name="refresh" size={17} /> {t('syncNow')}
           </button>
           <button className="btn btn-danger" onClick={() => void disableSync()}>{t('cloudDisable')}</button>
         </div>
@@ -138,7 +139,7 @@ function BridgeCard() {
 
   return (
     <div className="card card-pad" style={{ marginBottom: 14 }}>
-      <h2>🖨️ {t('printBridge')}</h2>
+      <h2 className="page-title"><Icon name="printer" size={20} /> {t('printBridge')}</h2>
       <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('printBridgeHint')}</p>
       <div className="switch-row">
         <span>{t('bridgeEnable')}</span>
@@ -164,15 +165,15 @@ function BridgeCard() {
             <Switch checked={bg.openDrawerOnCash} onChange={(v) => up({ openDrawerOnCash: v })} />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-            <button className="btn btn-ghost" onClick={testConnection}>🔌 {t('bridgeTestConnection')}</button>
-            <button className="btn btn-ghost" onClick={testPrint}>🧾 {t('bridgeTestPrint')}</button>
+            <button className="btn btn-ghost" onClick={testConnection}><Icon name="refresh" size={16} /> {t('bridgeTestConnection')}</button>
+            <button className="btn btn-ghost" onClick={testPrint}><Icon name="printer" size={16} /> {t('bridgeTestPrint')}</button>
           </div>
           {testing === 'ok' && <div className="change-banner" style={{ marginTop: 10 }}>{t('bridgeConnected')}</div>}
           {testing === 'fail' && <div className="change-banner warn" style={{ marginTop: 10 }}>{t('bridgeNotFound')}</div>}
         </>
       )}
       <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={save}>
-        💾 {t('save')}
+        <Icon name="check" size={17} /> {t('save')}
       </button>
     </div>
   );
@@ -195,7 +196,7 @@ function BarcodeCard() {
 
   return (
     <div className="card card-pad" style={{ marginBottom: 14 }}>
-      <h2>🏷️ {t('barcode')}</h2>
+      <h2 className="page-title"><Icon name="barcode" size={20} /> {t('barcode')}</h2>
       <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('barcodeHint')}</p>
       <div className="switch-row">
         <span>{t('barcodeEnable')}</span>
@@ -210,10 +211,10 @@ function BarcodeCard() {
           <label>{t('barcodeValueMode')}</label>
           <div className="seg" style={{ display: 'flex' }}>
             <button className={bc.valueMode === 'price' ? 'on' : ''} style={{ flex: 1 }} onClick={() => up({ valueMode: 'price' })}>
-              💰 {t('barcodePrice')}
+              {t('barcodePrice')}
             </button>
             <button className={bc.valueMode === 'weight' ? 'on' : ''} style={{ flex: 1 }} onClick={() => up({ valueMode: 'weight' })}>
-              ⚖️ {t('barcodeWeight')}
+              {t('barcodeWeight')}
             </button>
           </div>
         </div>
@@ -244,7 +245,7 @@ function BarcodeCard() {
           toast(t('settingsSaved'));
         }}
       >
-        💾 {t('save')}
+        <Icon name="check" size={17} /> {t('save')}
       </button>
     </div>
   );
@@ -309,8 +310,8 @@ export default function Settings() {
   return (
     <div>
       <div className="page-head">
-        <h2>⚙️ {t('settings')}</h2>
-        <button className="btn btn-primary" onClick={save}>💾 {t('save')}</button>
+        <h2 className="page-title"><Icon name="settings" size={20} /> {t('settings')}</h2>
+        <button className="btn btn-primary" onClick={save}><Icon name="check" size={17} /> {t('save')}</button>
       </div>
 
       <div className="grid-2">
@@ -319,7 +320,7 @@ export default function Settings() {
           <BridgeCard />
           <BarcodeCard />
           <div className="card card-pad" style={{ marginBottom: 14 }}>
-            <h2>🏪 {t('shopInfo')}</h2>
+            <h2 className="page-title"><Icon name="book" size={20} /> {t('shopInfo')}</h2>
             <div className="field">
               <label>{t('shopNameFr')}</label>
               <input value={ts.shopNameFr} onChange={(e) => up({ shopNameFr: e.target.value })} />
@@ -341,14 +342,14 @@ export default function Settings() {
               {ts.logo && <div style={{ marginBottom: 10 }}><img className="logo-preview" src={ts.logo} alt="logo" /></div>}
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && onLogoFile(e.target.files[0])} />
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-ghost" onClick={() => fileRef.current?.click()}>🖼 {t('uploadLogo')}</button>
+                <button className="btn btn-ghost" onClick={() => fileRef.current?.click()}><Icon name="image" size={17} /> {t('uploadLogo')}</button>
                 {ts.logo && <button className="btn btn-danger" onClick={() => up({ logo: '' })}>{t('removeLogo')}</button>}
               </div>
             </div>
           </div>
 
           <div className="card card-pad">
-            <h2>🎨 {t('ticketDesign')}</h2>
+            <h2 className="page-title"><Icon name="image" size={20} /> {t('ticketDesign')}</h2>
             <div className="grid-2">
               <div className="field">
                 <label>{t('paperWidth')}</label>
@@ -403,7 +404,7 @@ export default function Settings() {
           </div>
 
           <div className="card card-pad" style={{ marginTop: 14, borderColor: '#fecaca' }}>
-            <h2 style={{ color: 'var(--brand-600)' }}>⚠️ {t('dangerZone')}</h2>
+            <h2 className="page-title" style={{ color: 'var(--brand-600)' }}><Icon name="alert" size={20} /> {t('dangerZone')}</h2>
             <button className="btn btn-danger" onClick={() => setConfirmReset(true)}>{t('resetData')}</button>
           </div>
         </div>
@@ -411,8 +412,8 @@ export default function Settings() {
         <div>
           <div className="card card-pad">
             <div className="page-head" style={{ marginBottom: 10 }}>
-              <h2>🧾 {t('ticketPreview')}</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => printHTML(previewHTML)}>🖨 {t('testPrint')}</button>
+              <h2 className="page-title"><Icon name="printer" size={20} /> {t('ticketPreview')}</h2>
+              <button className="btn btn-ghost btn-sm" onClick={() => printHTML(previewHTML)}><Icon name="printer" size={16} /> {t('testPrint')}</button>
             </div>
             <div className="ticket-preview-wrap">
               <iframe
@@ -428,7 +429,7 @@ export default function Settings() {
 
       {confirmReset && (
         <Modal
-          title={`⚠️ ${t('dangerZone')}`}
+          title={`${t('dangerZone')}`}
           onClose={() => setConfirmReset(false)}
           footer={
             <>

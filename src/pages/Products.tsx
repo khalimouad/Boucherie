@@ -4,6 +4,7 @@ import { db, uid, type Category, type Product, type Unit } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtQty, downscaleImage } from '../utils';
 import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
+import { Icon } from '../components/Icon';
 
 const COLORS = ['#b91c1c', '#c2410c', '#ca8a04', '#15803d', '#0e7490', '#1d4ed8', '#7e22ce', '#be185d'];
 const ICONS = ['🥩', '🍖', '🍗', '🫀', '🥓', '🐄', '🐑', '🐔', '🦃', '🌭', '🍢', '🧆'];
@@ -73,16 +74,16 @@ export default function Products() {
     <div>
       <div className="page-head">
         <div className="seg">
-          <button className={tab === 'products' ? 'on' : ''} onClick={() => setTab('products')}>🥩 {t('navProducts')}</button>
-          <button className={tab === 'categories' ? 'on' : ''} onClick={() => setTab('categories')}>🗂 {t('categories')}</button>
+          <button className={tab === 'products' ? 'on' : ''} onClick={() => setTab('products')}><Icon name="meat" size={17} /> {t('navProducts')}</button>
+          <button className={tab === 'categories' ? 'on' : ''} onClick={() => setTab('categories')}><Icon name="grid" size={16} /> {t('categories')}</button>
         </div>
         <div className="ph-actions">
           {tab === 'products' ? (
             <button className="btn btn-primary" onClick={() => setEditProd({ unit: 'kg', active: true, categoryId: categories[0]?.id })}>
-              ＋ {t('newProduct')}
+              <Icon name="plus" size={18} /> {t('newProduct')}
             </button>
           ) : (
-            <button className="btn btn-primary" onClick={() => setEditCat({})}>＋ {t('newCategory')}</button>
+            <button className="btn btn-primary" onClick={() => setEditCat({})}><Icon name="plus" size={18} /> {t('newCategory')}</button>
           )}
         </div>
       </div>
@@ -127,7 +128,7 @@ export default function Products() {
                         {p.stock <= p.lowStock && <span className="badge amber">{t('lowStockAlert')}</span>}
                       </td>
                       <td className="card-actions">
-                        <button className="btn-icon sm" onClick={() => setEditProd(p)} aria-label={t('edit')}>✏️</button>{' '}
+                        <button className="btn-icon sm" onClick={() => setEditProd(p)} aria-label={t('edit')}><Icon name="edit" size={17} /></button>{' '}
                         <button
                           className="btn-icon sm btn-icon-danger"
                           aria-label={t('delete')}
@@ -135,7 +136,7 @@ export default function Products() {
                             if (confirm(t('confirmDelete'))) await db.products.delete(p.id!);
                           }}
                         >
-                          🗑
+                          <Icon name="trash" size={17} />
                         </button>
                       </td>
                     </tr>
@@ -172,7 +173,7 @@ export default function Products() {
                     <td data-label={t('nameAr')} dir="rtl">{c.nameAr}</td>
                     <td data-label={t('color')}><span style={{ display: 'inline-block', width: 26, height: 26, borderRadius: 8, background: c.color }} /></td>
                     <td className="card-actions">
-                      <button className="btn-icon sm" onClick={() => setEditCat(c)} aria-label={t('edit')}>✏️</button>{' '}
+                      <button className="btn-icon sm" onClick={() => setEditCat(c)} aria-label={t('edit')}><Icon name="edit" size={17} /></button>{' '}
                       <button
                         className="btn-icon sm btn-icon-danger"
                         aria-label={t('delete')}
@@ -180,7 +181,7 @@ export default function Products() {
                           if (confirm(t('confirmDelete'))) await db.categories.delete(c.id!);
                         }}
                       >
-                        🗑
+                        <Icon name="trash" size={17} />
                       </button>
                     </td>
                   </tr>
@@ -193,7 +194,7 @@ export default function Products() {
 
       {editProd && (
         <Modal
-          title={editProd.id ? `✏️ ${t('edit')}` : `＋ ${t('newProduct')}`}
+          title={editProd.id ? `${t('edit')}` : `${t('newProduct')}`}
           onClose={() => setEditProd(null)}
           footer={
             <>
@@ -288,7 +289,7 @@ export default function Products() {
 
       {editCat && (
         <Modal
-          title={editCat.id ? `✏️ ${t('edit')}` : `＋ ${t('newCategory')}`}
+          title={editCat.id ? `${t('edit')}` : `${t('newCategory')}`}
           onClose={() => setEditCat(null)}
           footer={
             <>

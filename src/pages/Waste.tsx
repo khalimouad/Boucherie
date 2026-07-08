@@ -4,6 +4,7 @@ import { db, uid, type User, type Waste as WasteRow, type WasteReason } from '..
 import { localName, useI18n, type TKey } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, round2, startOfDay, todayISO } from '../utils';
 import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
+import { Icon } from '../components/Icon';
 
 export const REASONS: { id: WasteReason; key: TKey; icon: string }[] = [
   { id: 'bones', key: 'rBones', icon: '🦴' },
@@ -73,8 +74,8 @@ export default function Waste({ user }: { user: User }) {
   return (
     <div>
       <div className="page-head">
-        <h2>⚖️ {t('waste')} — الكسور</h2>
-        <button className="btn btn-primary" onClick={() => setShow(true)}>＋ {t('declareWaste')}</button>
+        <h2 className="page-title"><Icon name="scale" size={22} /> {t('waste')} — الكسور</h2>
+        <button className="btn btn-primary" onClick={() => setShow(true)}><Icon name="plus" size={18} /> {t('declareWaste')}</button>
       </div>
 
       <div className="stats-grid">
@@ -123,7 +124,7 @@ export default function Waste({ user }: { user: User }) {
 
       {show && (
         <Modal
-          title={`＋ ${t('declareWaste')}`}
+          title={`${t('declareWaste')}`}
           onClose={() => setShow(false)}
           footer={
             <>

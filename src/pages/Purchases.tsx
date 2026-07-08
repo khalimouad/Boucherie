@@ -4,6 +4,7 @@ import { db, uid, type Purchase, type PurchaseItem, type User } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, round2, todayISO } from '../utils';
 import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
+import { Icon } from '../components/Icon';
 
 export default function Purchases({ user }: { user: User }) {
   const { t, lang } = useI18n();
@@ -85,10 +86,10 @@ export default function Purchases({ user }: { user: User }) {
   return (
     <div>
       <div className="page-head">
-        <h2>🚚 {t('navPurchases')}</h2>
+        <h2 className="page-title"><Icon name="truck" size={22} /> {t('navPurchases')}</h2>
         <div className="ph-actions">
-          <button className="btn btn-ghost" onClick={() => setShowSupplier(true)}>＋ {t('newSupplier')}</button>
-          <button className="btn btn-primary" onClick={() => setShowNew(true)}>＋ {t('newPurchase')}</button>
+          <button className="btn btn-ghost" onClick={() => setShowSupplier(true)}><Icon name="plus" size={18} /> {t('newSupplier')}</button>
+          <button className="btn btn-primary" onClick={() => setShowNew(true)}><Icon name="plus" size={18} /> {t('newPurchase')}</button>
         </div>
       </div>
 
@@ -125,7 +126,7 @@ export default function Purchases({ user }: { user: User }) {
 
       {showNew && (
         <Modal
-          title={`＋ ${t('newPurchase')}`}
+          title={`${t('newPurchase')}`}
           onClose={() => setShowNew(false)}
           wide
           footer={
@@ -182,12 +183,12 @@ export default function Purchases({ user }: { user: User }) {
                 aria-label={t('delete')}
                 onClick={() => setLines(lines.length > 1 ? lines.filter((_, j) => j !== i) : lines)}
               >
-                🗑
+                <Icon name="trash" size={18} />
               </button>
             </div>
           ))}
           <button className="btn btn-ghost btn-sm" onClick={() => setLines([...lines, { productId: '', qty: '', unitCost: '' }])}>
-            ＋ {t('addLine')}
+            <Icon name="plus" size={16} /> {t('addLine')}
           </button>
 
           <div className="field" style={{ marginTop: 14 }}>
@@ -199,7 +200,7 @@ export default function Purchases({ user }: { user: User }) {
 
       {showSupplier && (
         <Modal
-          title={`＋ ${t('newSupplier')}`}
+          title={`${t('newSupplier')}`}
           onClose={() => setShowSupplier(false)}
           footer={
             <>

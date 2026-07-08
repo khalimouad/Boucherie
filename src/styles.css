@@ -27,10 +27,10 @@
   --ink: #201a18;
   --ink-2: #6f645e;
   --ink-3: #a89d97;
-  --bg: #f4f4f6;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f6f6f8;
-  --surface-3: #eeedf1;
+  --surface-2: #f4f4f6;
+  --surface-3: #ebeaef;
   --border: #e7e6ea;
   --border-strong: #d5d3da;
 
@@ -971,15 +971,71 @@ table.data tr.clickable:active td { background: var(--brand-100); }
 }
 
 /* =====================================================================
+   Compact mobile — tighter spacing so more fits on a phone screen
+   ===================================================================== */
+@media (max-width: 640px) {
+  .content { padding: 12px; }
+  .main { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
+  .topbar { padding: 10px 12px; }
+  .topbar-brand { font-size: 1rem; gap: 8px; }
+  .topbar-brand .tb-logo { width: 34px; height: 34px; }
+  .tb-icon-btn { width: 38px; height: 38px; }
+
+  .pos-page { gap: 8px; }
+  .session-chip { padding: 9px 12px; font-size: 0.85rem; border-radius: var(--radius-sm); }
+  .pos { gap: 10px; }
+  .pos-left { gap: 8px; }
+
+  .pos-search { gap: 6px; }
+  .pos-search .search-field input { height: 42px; }
+  .scan-btn { width: 42px; height: 42px; }
+
+  .cat-chips { gap: 6px; }
+  .cat-chip { min-height: 34px; padding: 6px 12px; font-size: 0.8rem; }
+
+  .product-grid { gap: 8px; grid-template-columns: repeat(2, 1fr); }
+  .prod-card .pc-media { height: 78px; }
+  .prod-card .pc-add { width: 30px; height: 30px; bottom: -15px; margin-inline-start: -15px; }
+  .prod-card .pc-body { padding: 16px 8px 9px; }
+  .prod-card .pc-name { font-size: 0.8rem; }
+  .prod-card .pc-price { font-size: 0.85rem; }
+  .prod-card .pc-stock { font-size: 0.64rem; }
+
+  .pos-cart { max-height: 38%; }
+  .cart-head { padding: 10px 12px; }
+  .cart-head h2 { font-size: 0.92rem; }
+  .cart-items { padding: 2px 12px; }
+  .cart-line { padding: 8px 2px; }
+  .cart-empty { padding: 18px 12px; }
+  .cart-empty::before { font-size: 1.5rem; }
+  .cart-totals { padding: 10px 12px; }
+  .cart-totals .row.grand { font-size: 1.2rem; }
+  .cart-actions { padding: 0 12px 12px; }
+  .btn-checkout { min-height: 48px; font-size: 1rem; }
+
+  .stats-grid { gap: 8px; margin-bottom: 12px; }
+  .stat { padding: 13px; }
+  .stat .st-value { font-size: 1.3rem; }
+  .card-pad { padding: 14px; }
+  .page-head { margin-bottom: 12px; }
+  .bottomnav button { min-height: 56px; }
+  .bottomnav button .ni-icon { width: 40px; height: 28px; }
+}
+
+/* =====================================================================
    Page header / filters / segmented control
    ===================================================================== */
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.page-title { display: flex; align-items: center; gap: 9px; }
+.page-title svg { color: var(--brand-700); }
+.btn svg, .btn-checkout svg, .sc-btn svg, .menu-item svg, .nav-item svg, .cat-chip svg { flex-shrink: 0; }
 .page-head .ph-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .filters { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; margin-bottom: 18px; }
 .filters .field { margin-bottom: 0; }
 .filters input, .filters select { width: auto; min-width: 140px; }
 .seg { display: inline-flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
-.seg button { padding: 0 16px; min-height: 46px; font-weight: 700; color: var(--ink-2); font-size: 0.88rem; transition: background var(--dur) var(--ease-standard), color var(--dur) var(--ease-standard); }
+.seg button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 16px; min-height: 46px; font-weight: 700; color: var(--ink-2); font-size: 0.88rem; transition: background var(--dur) var(--ease-standard), color var(--dur) var(--ease-standard); }
+.pay-method .pm-icon { display: flex; }
 .seg button.on { background: var(--brand-700); color: #fff; }
 
 /* =====================================================================
