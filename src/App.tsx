@@ -1,10 +1,11 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedIfEmpty, type Role, type User } from './db';
 import { localName, useI18n, type TKey } from './i18n';
-import { Drawer, ToastProvider } from './components/shared';
+import { Drawer, ToastProvider, tap } from './components/shared';
 import { Icon, type IconName } from './components/Icon';
 import { getSyncStatus, initSync, subscribeSync } from './sync';
+import { cycleTheme, getTheme, subscribeTheme } from './theme';
 import { fmtQty } from './utils';
 import Login from './components/Login';
 import POS from './pages/POS';
@@ -34,6 +35,9 @@ export const NAV: NavDef[] = [
   { id: 'settings', icon: 'settings', label: 'navSettings', roles: ['admin'] },
 ];
 
+/** Phones only have room for a handful of dock slots; the rest move behind "More". */
+const DOCK_SLOTS = 4;
+
 export default function App() {
   const { t, lang, setLang } = useI18n();
   const [ready, setReady] = useState(false);
@@ -54,23 +58,42 @@ export default function App() {
   }, []);
 
   const sync = useSyncExternalStore(subscribeSync, getSyncStatus);
+  const theme = useSyncExternalStore(subscribeTheme, getTheme);
 
   if (!ready) {
     return (
       <div className="login-screen">
         <div className="login-card">
-          <div className="login-logo">🥩</div>
-          <div className="login-sub">{t('loading')}</div>
+          <div className="boot">
+            <div className="login-logo">🥩</div>
+            <div className="login-sub" style={{ margin: 0 }}>{t('loading')}</div>
+            <div className="boot-bar" />
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!user) return <ToastProvider><Login onLogin={(u) => { setUser(u); setPage('pos'); }} /></ToastProvider>;
+  if (!user) {
+    return (
+      <ToastProvider>
+        <Login onLogin={(u) => { setUser(u); setPage('pos'); }} />
+      </ToastProvider>
+    );
+  }
 
   const allowed = NAV.filter((n) => n.roles.includes(user.role));
   const current = allowed.some((n) => n.id === page) ? page : 'pos';
-  const go = (id: PageId) => { setPage(id); setMenuOpen(false); };
+  const currentNav = allowed.find((n) => n.id === current)!;
+  const go = (id: PageId) => {
+    tap();
+    setPage(id);
+    setMenuOpen(false);
+  };
+
+  const overflow = allowed.length > DOCK_SLOTS;
+  const docked = overflow ? allowed.slice(0, DOCK_SLOTS) : allowed;
+  const inMore = overflow && !docked.some((n) => n.id === current);
 
   const renderPage = () => {
     switch (current) {
@@ -84,19 +107,38 @@ export default function App() {
     }
   };
 
+  const syncState = !sync.enabled ? 'off' : sync.error ? 'err' : sync.syncing || sync.pending > 0 ? 'busy' : 'live';
+  // the pill stays short; the descriptive wording lives in the tooltip
+  const syncLabel = !sync.enabled
+    ? t('offline')
+    : sync.error
+      ? t('errorShort')
+      : sync.syncing
+        ? t('syncing')
+        : sync.pending > 0
+          ? `${sync.pending} ${t('pendingChanges')}`
+          : t('online');
   const syncTitle = !sync.enabled ? t('cloudOff') : sync.error ? t('cloudError') : t('cloudConnected');
+
+  const themeIcon: IconName = theme === 'light' ? 'sun' : theme === 'dark' ? 'moon' : 'monitor';
+  const themeLabel = theme === 'light' ? t('themeLight') : theme === 'dark' ? t('themeDark') : t('themeSystem');
 
   return (
     <ToastProvider>
       <div className="app">
         <aside className="sidebar">
           <div className="sidebar-brand">
-            <span className="logo-emoji"><Icon name="meat" size={22} /></span>
+            <span className="logo-emoji"><Icon name="meat" size={21} /></span>
             <span>{t('appName')}</span>
           </div>
           <nav>
-            {allowed.map((n) => (
-              <button key={n.id} className={`nav-item ${current === n.id ? 'active' : ''}`} onClick={() => setPage(n.id)}>
+            {allowed.map((n, i) => (
+              <button
+                key={n.id}
+                className={`nav-item ${current === n.id ? 'active' : ''}`}
+                style={{ '--i': i } as CSSProperties}
+                onClick={() => go(n.id)}
+              >
                 <span className="ni-icon"><Icon name={n.icon} size={20} /></span>
                 <span>{t(n.label)}</span>
               </button>
@@ -105,7 +147,7 @@ export default function App() {
           <div className="sidebar-user">
             <div className="su-name">{user.name}</div>
             <div className="su-role">{t(user.role)}</div>
-            <button className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 10 }} onClick={() => setUser(null)}>
+            <button className="btn btn-ghost btn-sm btn-block" onClick={() => setUser(null)}>
               <Icon name="logout" size={17} /> {t('logout')}
             </button>
           </div>
@@ -113,20 +155,30 @@ export default function App() {
 
         <div className="main">
           <header className="topbar">
-            <h1>{t(allowed.find((n) => n.id === current)!.label)}</h1>
             <button className="tb-icon-btn hide-desktop" onClick={() => setMenuOpen(true)} aria-label={t('menu')}>
-              <Icon name="menu" size={22} />
+              <Icon name="menu" size={21} />
             </button>
             <div className="topbar-brand">
-              <span className="tb-logo" aria-hidden="true"><Icon name="meat" size={20} /></span>
-              <span className="tb-name">{t('appName')}</span>
+              <span className="tb-logo" aria-hidden="true"><Icon name="meat" size={19} /></span>
+              <span style={{ minWidth: 0 }}>
+                <span className="tb-name" style={{ display: 'block' }}>{t('appName')}</span>
+                <span className="tb-page">{t(currentNav.label)}</span>
+              </span>
+            </div>
+            <div className="tb-heading">
+              <h1 key={current}>{t(currentNav.label)}</h1>
+              <div className="tb-sub">{user.name} · {t(user.role)}</div>
             </div>
             <div className="topbar-right">
-              <span className="sync-dot" role="status" aria-label={syncTitle} title={syncTitle}
-                style={{ background: !sync.enabled ? 'var(--border-strong)' : sync.error ? 'var(--brand-500)' : sync.pending > 0 ? 'var(--amber)' : 'var(--accent)' }}
-              />
+              <span className="sync-pill" role="status" title={syncTitle} aria-label={syncTitle}>
+                <span className={`sync-dot ${syncState}`} />
+                <span className="sp-text">{syncLabel}</span>
+              </span>
+              <button className="tb-icon-btn" onClick={() => { tap(); cycleTheme(); }} aria-label={`${t('appearance')}: ${themeLabel}`} title={`${t('appearance')}: ${themeLabel}`}>
+                <Icon name={themeIcon} size={19} />
+              </button>
               <button className="tb-icon-btn" onClick={() => setAlertsOpen(true)} aria-label={t('lowStockAlert')}>
-                <Icon name="bell" size={20} />
+                <Icon name="bell" size={19} />
                 {lowStock.length > 0 && <span className="tb-badge">{lowStock.length}</span>}
               </button>
               <div className="lang-switch">
@@ -135,36 +187,64 @@ export default function App() {
               </div>
             </div>
           </header>
-          <main className="content">{renderPage()}</main>
+
+          <main className="content">
+            <div className="page-swap" key={current}>{renderPage()}</div>
+          </main>
         </div>
 
-        <nav className="bottomnav">
-          {allowed.map((n) => (
-            <button key={n.id} className={current === n.id ? 'active' : ''} onClick={() => setPage(n.id)}>
-              <span className="ni-icon"><Icon name={n.icon} size={22} /></span>
+        <nav className="bottomnav" aria-label={t('menu')}>
+          {docked.map((n) => (
+            <button key={n.id} className={current === n.id ? 'active' : ''} onClick={() => go(n.id)}>
+              <span className="ni-icon"><Icon name={n.icon} size={21} /></span>
               <span>{t(n.label)}</span>
             </button>
           ))}
+          {overflow && (
+            <button className={inMore ? 'active' : ''} onClick={() => { tap(); setMenuOpen(true); }}>
+              <span className="ni-icon"><Icon name="dots" size={21} /></span>
+              <span>{t('more')}</span>
+            </button>
+          )}
         </nav>
 
         {menuOpen && (
           <Drawer title={t('appName')} onClose={() => setMenuOpen(false)}>
             <nav className="menu-drawer">
-              {allowed.map((n) => (
-                <button key={n.id} className={`menu-item ${current === n.id ? 'active' : ''}`} onClick={() => go(n.id)}>
-                  <Icon name={n.icon} size={22} />
+              {allowed.map((n, i) => (
+                <button
+                  key={n.id}
+                  className={`menu-item ${current === n.id ? 'active' : ''}`}
+                  style={{ '--i': i } as CSSProperties}
+                  onClick={() => go(n.id)}
+                >
+                  <Icon name={n.icon} size={21} />
                   <span>{t(n.label)}</span>
                 </button>
               ))}
-              <button className="menu-item" onClick={() => { setMenuOpen(false); setUser(null); }}>
-                <Icon name="logout" size={22} />
+              <button
+                className="menu-item"
+                style={{ '--i': allowed.length } as CSSProperties}
+                onClick={() => { setMenuOpen(false); setUser(null); }}
+              >
+                <Icon name="logout" size={21} />
                 <span>{t('logout')}</span>
               </button>
-              <div className="lang-switch" style={{ margin: '12px 8px 0' }}>
+            </nav>
+
+            <div className="switch-row" style={{ marginTop: 18 }}>
+              <label style={{ margin: 0 }}>{t('appLang')}</label>
+              <div className="lang-switch">
                 <button className={lang === 'fr' ? 'on' : ''} onClick={() => setLang('fr')}>Français</button>
                 <button className={lang === 'ar' ? 'on' : ''} onClick={() => setLang('ar')}>العربية</button>
               </div>
-            </nav>
+            </div>
+            <div className="switch-row">
+              <label style={{ margin: 0 }}>{t('appearance')}</label>
+              <button className="btn btn-ghost btn-sm" onClick={() => { tap(); cycleTheme(); }}>
+                <Icon name={themeIcon} size={17} /> {themeLabel}
+              </button>
+            </div>
           </Drawer>
         )}
 
@@ -174,8 +254,8 @@ export default function App() {
               <div className="empty-state"><div className="es-icon">✅</div><div>{t('noData')}</div></div>
             ) : (
               <div className="alert-list">
-                {lowStock.map((p) => (
-                  <div key={p.id} className="alert-row">
+                {lowStock.map((p, i) => (
+                  <div key={p.id} className="alert-row" style={{ '--i': i } as CSSProperties}>
                     <span className="alert-ico"><Icon name="alert" size={20} /></span>
                     <span className="alert-name">{localName(p, lang)}</span>
                     <span className="alert-qty">{fmtQty(p.stock, p.unit)} {p.unit === 'kg' ? t('kg') : ''}</span>

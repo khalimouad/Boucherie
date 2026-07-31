@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   db,
@@ -14,7 +14,7 @@ import {
 } from '../db';
 import { localName, useI18n } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
-import { Drawer, Empty, Modal, NumPad, ProductGridSkeleton, useToast } from '../components/shared';
+import { Drawer, Empty, Modal, NumPad, ProductGridSkeleton, tap, useToast } from '../components/shared';
 import { Icon } from '../components/Icon';
 import { printSaleTicket, printSessionReport } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
@@ -47,6 +47,8 @@ export default function POS({ user }: { user: User }) {
   const [closedSummary, setClosedSummary] = useState<CashSession | null>(null);
   const [scanModal, setScanModal] = useState(false);
   const [sessionDrawer, setSessionDrawer] = useState(false);
+  // on phones the cart is a bottom sheet driven by the floating summary bar
+  const [cartOpen, setCartOpen] = useState(false);
 
   const visible = useMemo(() => {
     let list = products;
@@ -60,8 +62,20 @@ export default function POS({ user }: { user: User }) {
 
   const subtotal = round2(cart.reduce((s, l) => s + l.total, 0));
 
+  // pulse the grand total whenever it moves, so the cashier's eye follows it
+  const [bump, setBump] = useState(false);
+  const prevSubtotal = useRef(subtotal);
+  useEffect(() => {
+    if (prevSubtotal.current === subtotal) return;
+    prevSubtotal.current = subtotal;
+    setBump(true);
+    const id = setTimeout(() => setBump(false), 340);
+    return () => clearTimeout(id);
+  }, [subtotal]);
+
   const addLine = useCallback((p: Product, qty: number) => {
     if (qty <= 0) return;
+    tap(16);
     setCart((c) => [
       ...c,
       {
@@ -132,6 +146,7 @@ export default function POS({ user }: { user: User }) {
     });
     setCart([]);
     setPayModal(false);
+    setCartOpen(false);
     setDoneSale(sale);
     toast(t('saleDone'));
     const ts = await getTicketSettings();
@@ -172,11 +187,16 @@ export default function POS({ user }: { user: User }) {
           )}
         </div>
         <div className="cat-chips">
-          <button className={`cat-chip ${catFilter === null ? 'on' : ''}`} onClick={() => setCatFilter(null)}>
+          <button className={`cat-chip ${catFilter === null ? 'on' : ''}`} onClick={() => { tap(); setCatFilter(null); }}>
             <Icon name="grid" size={16} /> {t('all')}
           </button>
-          {categories.map((c) => (
-            <button key={c.id} className={`cat-chip ${catFilter === c.id ? 'on' : ''}`} onClick={() => setCatFilter(c.id!)}>
+          {categories.map((c, i) => (
+            <button
+              key={c.id}
+              className={`cat-chip ${catFilter === c.id ? 'on' : ''}`}
+              style={{ '--i': i + 1 } as CSSProperties}
+              onClick={() => { tap(); setCatFilter(c.id!); }}
+            >
               <span>{c.icon}</span> {localName(c, lang)}
             </button>
           ))}
@@ -187,10 +207,15 @@ export default function POS({ user }: { user: User }) {
           <Empty icon="🔍" />
         ) : (
           <div className="product-grid">
-            {visible.map((p) => {
+            {visible.map((p, i) => {
               const cat = categories.find((c) => c.id === p.categoryId);
               return (
-                <button key={p.id} className={`prod-card ${p.stock <= p.lowStock ? 'low' : ''}`} onClick={() => setQtyModal(p)}>
+                <button
+                  key={p.id}
+                  className={`prod-card ${p.stock <= p.lowStock ? 'low' : ''}`}
+                  style={{ '--i': Math.min(i, 14) } as CSSProperties}
+                  onClick={() => { tap(); setQtyModal(p); }}
+                >
                   {p.stock <= p.lowStock && <span className="pc-lowbadge">{t('lowStockAlert')}</span>}
                   <span
                     className="pc-media"
@@ -212,14 +237,33 @@ export default function POS({ user }: { user: User }) {
         )}
       </div>
 
-      <div className="pos-cart">
+      {/* phone-only summary bar: keeps the total and "pay" in thumb reach */}
+      {cart.length > 0 && !cartOpen && (
+        <div className="cart-bar">
+          <button className="cb-open" onClick={() => { tap(); setCartOpen(true); }} aria-label={t('viewCart')}>
+            <Icon name="basket" size={20} />
+          </button>
+          <div className="cb-info">
+            <div className="cb-count">{cart.length} {cart.length > 1 ? t('articles') : t('item')}</div>
+            <div className={`cb-total ${bump ? 'total-bump' : ''}`}>{fmtDH(subtotal, lang)}</div>
+          </div>
+          <button className="cb-pay" onClick={() => { tap(); setPayModal(true); }}>
+            <Icon name="cash" size={18} /> {t('pay')}
+          </button>
+        </div>
+      )}
+
+      {cartOpen && <div className="cart-sheet-backdrop" onClick={() => setCartOpen(false)} />}
+
+      <div className={`pos-cart ${cartOpen ? 'open' : ''}`}>
         <div className="cart-head">
           <h2><Icon name="basket" size={20} /> {t('cart')} ({cart.length})</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="ch-actions">
             <button className="btn-icon sm" onClick={handleOpenDrawer} aria-label={t('openDrawer')} title={t('openDrawer')}><Icon name="drawer" size={19} /></button>
             {cart.length > 0 && (
               <button className="btn-icon sm btn-icon-danger" onClick={() => setCart([])} aria-label={t('clearCart')} title={t('clearCart')}><Icon name="trash" size={18} /></button>
             )}
+            <button className="btn-icon sm hide-desktop" onClick={() => setCartOpen(false)} aria-label={t('close')}><Icon name="x" size={17} /></button>
           </div>
         </div>
         <div className="cart-items">
@@ -240,11 +284,11 @@ export default function POS({ user }: { user: User }) {
         <div className="cart-totals">
           <div className="row grand">
             <span>{t('total')}</span>
-            <span>{fmtDH(subtotal, lang)}</span>
+            <span className={bump ? 'total-bump' : ''}>{fmtDH(subtotal, lang)}</span>
           </div>
         </div>
         <div className="cart-actions">
-          <button className="btn-checkout" disabled={cart.length === 0} onClick={() => setPayModal(true)}>
+          <button className="btn-checkout" disabled={cart.length === 0} onClick={() => { tap(); setPayModal(true); }}>
             <Icon name="cash" size={20} /> {t('pay')}
           </button>
         </div>
@@ -284,8 +328,13 @@ export default function POS({ user }: { user: User }) {
           }
         >
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-2)' }}>{t('ticketNo')} {doneSale.number}</div>
-            <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '10px 0' }}>{fmtDH(doneSale.total, lang)}</div>
+            <div className="done-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4.5 12.5 10 18 20 6.5" />
+              </svg>
+            </div>
+            <div className="done-label">{t('ticketNo')} {doneSale.number}</div>
+            <div className="done-amount">{fmtDH(doneSale.total, lang)}</div>
             {doneSale.change > 0 && (
               <div className="change-banner">{t('changeDue')}: {fmtDH(doneSale.change, lang)}</div>
             )}
@@ -386,8 +435,8 @@ function ClosedSummaryModal({ session, onClose }: { session: CashSession; onClos
       }
     >
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '0.9rem', color: 'var(--text-2)' }}>{t('expectedCash')}: {fmtDH(session.expectedAmount ?? 0, lang)}</div>
-        <div style={{ fontSize: '2.2rem', fontWeight: 800, margin: '10px 0' }}>{fmtDH(session.countedAmount ?? 0, lang)}</div>
+        <div className="done-label">{t('expectedCash')}: {fmtDH(session.expectedAmount ?? 0, lang)}</div>
+        <div className="done-amount">{fmtDH(session.countedAmount ?? 0, lang)}</div>
         <div className={`change-banner ${diff < 0 ? 'warn' : ''}`}>
           {t('cashDifference')}: {diff >= 0 ? '+' : ''}{fmtDH(diff, lang)}
         </div>
@@ -408,9 +457,9 @@ function OpenRegisterScreen({ user }: { user: User }) {
   };
 
   return (
-    <div className="login-screen" style={{ minHeight: 'calc(100vh - 140px)' }}>
+    <div className="login-screen register-screen">
       <div className="login-card">
-        <div className="login-logo" style={{ color: 'var(--brand-700)' }}><Icon name="drawer" size={54} /></div>
+        <div className="login-logo"><Icon name="drawer" size={38} /></div>
         <div className="login-title">{t('registerClosed')}</div>
         <div className="login-sub">{t('registerClosedHint')}</div>
         <label>{t('openingAmount')}</label>

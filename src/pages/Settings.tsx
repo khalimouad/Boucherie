@@ -19,6 +19,7 @@ import { Modal, Switch, useToast } from '../components/shared';
 import { Icon } from '../components/Icon';
 import { buildTicketHTML, printHTML } from '../print';
 import { CLOUD_EMAIL, disableSync, enableSync, getSyncStatus, subscribeSync, syncNow } from '../sync';
+import { getTheme, setTheme, subscribeTheme, type ThemeMode } from '../theme';
 import { bridgePing, testPrintViaBridge } from '../printBridge';
 import { parseBarcode } from '../barcode';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -66,13 +67,8 @@ function CloudCard() {
       <h2 className="page-title"><Icon name="cloud" size={20} /> {t('cloudSync')}</h2>
       <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('cloudHint')}</p>
       <div className="switch-row" style={{ borderBottom: 'none', paddingTop: 0 }}>
-        <span>
-          <span
-            style={{
-              display: 'inline-block', width: 10, height: 10, borderRadius: '50%', marginInlineEnd: 8,
-              background: !status.enabled ? '#a8a29e' : status.error ? 'var(--brand-500)' : 'var(--accent)',
-            }}
-          />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+          <span className={`sync-dot ${!status.enabled ? '' : status.error ? 'err' : status.syncing ? 'busy' : 'live'}`} />
           {!status.enabled ? t('cloudOff') : status.error ? `${t('cloudError')}` : t('cloudConnected')}
         </span>
         {status.enabled && (
@@ -100,6 +96,34 @@ function CloudCard() {
           <button className="btn btn-danger" onClick={() => void disableSync()}>{t('cloudDisable')}</button>
         </div>
       )}
+    </div>
+  );
+}
+
+function AppearanceCard() {
+  const { t, lang, setLang } = useI18n();
+  const theme = useSyncExternalStore(subscribeTheme, getTheme);
+  const modes: { id: ThemeMode; icon: 'sun' | 'moon' | 'monitor'; label: string }[] = [
+    { id: 'light', icon: 'sun', label: t('themeLight') },
+    { id: 'dark', icon: 'moon', label: t('themeDark') },
+    { id: 'system', icon: 'monitor', label: t('themeSystem') },
+  ];
+
+  return (
+    <div className="card card-pad" style={{ marginBottom: 14 }}>
+      <h2 className="page-title"><Icon name="image" size={20} /> {t('appearance')}</h2>
+      <div className="seg" style={{ display: 'flex', width: '100%', marginBottom: 14 }}>
+        {modes.map((m) => (
+          <button key={m.id} className={theme === m.id ? 'on' : ''} style={{ flex: 1 }} onClick={() => setTheme(m.id)}>
+            <Icon name={m.icon} size={16} /> {m.label}
+          </button>
+        ))}
+      </div>
+      <label>{t('appLang')}</label>
+      <div className="seg" style={{ display: 'flex', width: '100%' }}>
+        <button className={lang === 'fr' ? 'on' : ''} style={{ flex: 1 }} onClick={() => setLang('fr')}>Français</button>
+        <button className={lang === 'ar' ? 'on' : ''} style={{ flex: 1 }} onClick={() => setLang('ar')}>العربية</button>
+      </div>
     </div>
   );
 }
@@ -316,6 +340,7 @@ export default function Settings() {
 
       <div className="grid-2">
         <div>
+          <AppearanceCard />
           <CloudCard />
           <BridgeCard />
           <BarcodeCard />
@@ -403,8 +428,8 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="card card-pad" style={{ marginTop: 14, borderColor: '#fecaca' }}>
-            <h2 className="page-title" style={{ color: 'var(--brand-600)' }}><Icon name="alert" size={20} /> {t('dangerZone')}</h2>
+          <div className="card card-pad danger-card" style={{ marginTop: 14 }}>
+            <h2 className="page-title"><Icon name="alert" size={20} /> {t('dangerZone')}</h2>
             <button className="btn btn-danger" onClick={() => setConfirmReset(true)}>{t('resetData')}</button>
           </div>
         </div>

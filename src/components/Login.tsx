@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, hashPin, type User } from '../db';
 import { useI18n } from '../i18n';
-import { NumPad } from './shared';
+import { NumPad, tap } from './shared';
+import { Icon } from './Icon';
 
 export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
   const { t, lang, setLang } = useI18n();
@@ -14,38 +15,44 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
   useEffect(() => {
     if (!selected || pin.length < 4) return;
     let cancelled = false;
+    const fail = () => {
+      if (cancelled) return;
+      setError(true);
+      setPin('');
+      tap(60);
+      setTimeout(() => setError(false), 1500);
+    };
     hashPin(pin)
       .then((h) => {
         if (cancelled) return;
-        if (h === selected.pinHash) {
-          onLogin(selected);
-        } else {
-          setError(true);
-          setPin('');
-          setTimeout(() => setError(false), 1500);
-        }
+        if (h === selected.pinHash) onLogin(selected);
+        else fail();
       })
-      .catch(() => {
-        if (cancelled) return;
-        setError(true);
-        setPin('');
-        setTimeout(() => setError(false), 1500);
-      });
+      .catch(fail);
     return () => { cancelled = true; };
   }, [pin, selected, onLogin]);
 
   return (
     <div className="login-screen">
       <div className="login-card">
-        <div className="login-logo">🥩</div>
+        <div className="login-logo" aria-hidden="true">
+          <Icon name="meat" size={38} />
+        </div>
         <div className="login-title">{t('appName')}</div>
-        <div className="login-sub">{selected ? t('enterPin') : t('selectUser')}</div>
+        <div className="login-sub">
+          {selected ? `${t('welcome')}, ${selected.name} — ${t('enterPin')}` : t('selectUser')}
+        </div>
 
         {!selected && (
           <>
             <div className="user-tiles">
-              {users.map((u) => (
-                <button key={u.id} className="user-tile" onClick={() => { setSelected(u); setPin(''); }}>
+              {users.map((u, i) => (
+                <button
+                  key={u.id}
+                  className="user-tile"
+                  style={{ '--i': i } as CSSProperties}
+                  onClick={() => { tap(); setSelected(u); setPin(''); }}
+                >
                   <span className="avatar">{u.name.charAt(0).toUpperCase()}</span>
                   <span className="tile-name">{u.name}</span>
                   <span className="tile-role">{t(u.role)}</span>
@@ -66,10 +73,14 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
                 <span key={i} className={`pin-dot ${pin.length > i ? 'full' : ''}`} />
               ))}
             </div>
-            <div className="pin-error">{error ? t('wrongPin') : ''}</div>
+            <div className={`pin-error ${error ? 'on' : ''}`}>{error ? t('wrongPin') : ''}</div>
             <NumPad value={pin} onChange={(v) => setPin(v.slice(0, 4))} allowDecimal={false} maxLen={4} />
-            <button className="btn btn-ghost btn-block" style={{ marginTop: 14 }} onClick={() => { setSelected(null); setPin(''); }}>
-              ← {t('back')}
+            <button
+              className="btn btn-ghost btn-block btn-back"
+              style={{ marginTop: 14 }}
+              onClick={() => { setSelected(null); setPin(''); }}
+            >
+              <Icon name="chevron" size={17} /> {t('back')}
             </button>
           </>
         )}

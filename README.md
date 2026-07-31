@@ -13,6 +13,23 @@ Solution de point de vente (POS) moderne et robuste pour boucherie, bilingue **F
 - **Paramétrage** : nom de boutique (FR/AR), adresse, téléphone, **logo personnalisé**, **design du ticket** (largeur papier, taille de texte, langue du ticket, en-tête/pied de page, éléments affichés) avec **aperçu en direct**.
 - **Devise** : Dirham marocain (DH / د.م.) toujours affiché avec **2 décimales**.
 - **Hors-ligne** : toutes les données sont stockées localement (IndexedDB) — aucune connexion internet requise.
+- **Synchronisation cloud** (optionnelle) : réplication temps réel entre la caisse et le mobile du gérant, via Supabase.
+- **Design** : thème **clair / sombre / système**, interface **mobile-first** (barre d'onglets flottante, feuilles glissantes, panier en bottom sheet) et animations fluides respectant `prefers-reduced-motion`.
+
+## 🗄️ Base de données cloud
+
+Le dossier [`supabase/`](supabase/) contient les migrations SQL qui créent la base
+de synchronisation (table `pos_rows`, RLS, Realtime, purge des tombstones) ainsi
+que des vues de reporting typées (`v_sales`, `v_daily_sales`, `v_monthly_waste_rate`…).
+
+```bash
+supabase link --project-ref <project-ref>
+supabase db push
+```
+
+Voir [`supabase/README.md`](supabase/README.md) pour la marche à suivre complète
+(création du compte boutique, activation dans **Paramètres → Synchronisation cloud**,
+isolation multi-boutiques, entretien).
 
 ## 🚀 Démarrage
 
@@ -40,4 +57,6 @@ L'impression utilise la boîte de dialogue du navigateur, compatible avec les im
 
 - React 18 + TypeScript + Vite
 - Dexie (IndexedDB) — stockage local robuste et transactionnel
-- CSS sur mesure — design moderne, responsive, RTL, optimisé tactile (cibles ≥ 48 px)
+- Supabase (Postgres) — synchronisation cloud optionnelle, migrations dans `supabase/`
+- CSS sur mesure — système de design « Slate & Ember » : jetons de couleur, thème sombre,
+  responsive, RTL, animations, optimisé tactile (cibles ≥ 48 px)

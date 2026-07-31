@@ -291,6 +291,20 @@ const dict = {
   closing: { fr: 'Fermeture', ar: 'السد' },
   ongoing: { fr: 'en cours', ar: 'جارية' },
   printReport: { fr: 'Imprimer le rapport', ar: 'طبع التقرير' },
+
+  // shell / appearance
+  more: { fr: 'Plus', ar: 'المزيد' },
+  appearance: { fr: 'Apparence', ar: 'المظهر' },
+  themeLight: { fr: 'Clair', ar: 'فاتح' },
+  themeDark: { fr: 'Sombre', ar: 'داكن' },
+  themeSystem: { fr: 'Système', ar: 'النظام' },
+  viewCart: { fr: 'Voir le panier', ar: 'شوف السلة' },
+  articles: { fr: 'articles', ar: 'سلع' },
+  item: { fr: 'article', ar: 'سلعة' },
+  offline: { fr: 'Hors-ligne', ar: 'بلا أنترنيت' },
+  errorShort: { fr: 'Erreur', ar: 'خطأ' },
+  syncing: { fr: 'Synchronisation…', ar: 'جارية المزامنة…' },
+  online: { fr: 'En ligne', ar: 'متصل' },
 } as const;
 
 export type TKey = keyof typeof dict;

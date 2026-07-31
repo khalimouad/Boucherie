@@ -1,5 +1,103 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 import { useI18n } from '../i18n';
+import { Icon } from './Icon';
+
+/* ---------- haptics ----------
+   A short tick on keypad / add-to-cart makes a touch till feel physical.
+   Silently unavailable on iOS Safari and desktop, which is fine. */
+export function tap(ms = 12) {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {
+    /* unsupported */
+  }
+}
+
+/* ---------- exit animations ----------
+   Overlays are rendered conditionally by their parent, so an exit animation
+   needs the close to be deferred: flip to `closing`, let CSS play, then unmount. */
+const EXIT_MS = 190;
+
+function useDismiss(onClose: () => void) {
+  const [closing, setClosing] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const dismiss = useCallback(() => {
+    if (timer.current) return;
+    setClosing(true);
+    timer.current = setTimeout(() => onCloseRef.current(), EXIT_MS);
+  }, []);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') dismiss();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dismiss]);
+
+  return { closing, dismiss };
+}
+
+/* ---------- swipe-to-dismiss ----------
+   Dragging the grab handle down past a threshold closes the sheet; anything
+   shorter springs back. Pointer events cover touch, pen and mouse. */
+function useSheetDrag(dismiss: () => void) {
+  const ref = useRef<HTMLDivElement>(null);
+  const start = useRef<number | null>(null);
+  const moved = useRef(0);
+
+  const setY = (y: number, animate: boolean) => {
+    const el = ref.current;
+    if (!el) return;
+    el.classList.toggle('dragging', !animate);
+    el.classList.toggle('settling', animate);
+    el.style.transform = y ? `translateY(${y}px)` : '';
+  };
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (window.innerWidth > 700) return; // sheet behaviour is mobile-only
+    start.current = e.clientY;
+    moved.current = 0;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (start.current === null) return;
+    moved.current = Math.max(0, e.clientY - start.current);
+    setY(moved.current, false);
+  };
+
+  const onPointerUp = () => {
+    if (start.current === null) return;
+    start.current = null;
+    if (moved.current > 110) {
+      setY(window.innerHeight, true);
+      dismiss();
+    } else {
+      setY(0, true);
+    }
+  };
+
+  return {
+    ref,
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp },
+  };
+}
 
 /* ---------- Toast ---------- */
 interface ToastCtx {
@@ -12,6 +110,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [msg, setMsg] = useState<{ text: string; kind: string; key: number } | null>(null);
   const toast = useCallback((text: string, kind: 'success' | 'info' = 'success') => {
     setMsg({ text, kind, key: Date.now() });
+    tap(kind === 'success' ? 14 : 8);
   }, []);
   useEffect(() => {
     if (!msg) return;
@@ -23,7 +122,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {msg && (
         <div className={`toast ${msg.kind}`} role="status" aria-live="polite" key={msg.key}>
-          <span aria-hidden="true">{msg.kind === 'success' ? '✅' : 'ℹ️'}</span>
+          <Icon name={msg.kind === 'success' ? 'check' : 'alert'} size={18} />
           {msg.text}
         </div>
       )}
@@ -31,7 +130,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/* ---------- Modal ---------- */
+/* ---------- Modal (centered dialog on desktop, bottom sheet on phones) ---------- */
 export function Modal({
   title,
   onClose,
@@ -45,23 +144,21 @@ export function Modal({
   footer?: ReactNode;
   wide?: boolean;
 }) {
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  const { closing, dismiss } = useDismiss(onClose);
+  const { ref, handlers } = useSheetDrag(dismiss);
 
   return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true">
+    <div
+      className={`modal-backdrop ${closing ? 'closing' : ''}`}
+      onClick={(e) => e.target === e.currentTarget && dismiss()}
+    >
+      <div ref={ref} className={`modal ${wide ? 'wide' : ''} ${closing ? 'closing' : ''}`} role="dialog" aria-modal="true">
+        <div className="modal-grab" {...handlers} aria-hidden="true" />
         <div className="modal-head">
           <h2>{title}</h2>
-          <button className="x-btn" onClick={onClose} aria-label="Fermer">✕</button>
+          <button className="x-btn" onClick={dismiss} aria-label="Fermer">
+            <Icon name="x" size={16} />
+          </button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
@@ -70,7 +167,7 @@ export function Modal({
   );
 }
 
-/* ---------- Drawer (side sliding panel) ---------- */
+/* ---------- Drawer (side panel on desktop, bottom sheet on phones) ---------- */
 export function Drawer({
   title,
   onClose,
@@ -80,22 +177,20 @@ export function Drawer({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  const { closing, dismiss } = useDismiss(onClose);
+  const { ref, handlers } = useSheetDrag(dismiss);
 
   return (
-    <div className="drawer-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="drawer" role="dialog" aria-modal="true">
-        <div className="drawer-head">
+    <div
+      className={`drawer-backdrop ${closing ? 'closing' : ''}`}
+      onClick={(e) => e.target === e.currentTarget && dismiss()}
+    >
+      <aside ref={ref} className={`drawer ${closing ? 'closing' : ''}`} role="dialog" aria-modal="true">
+        <div className="drawer-head" {...handlers}>
           <h2>{title}</h2>
-          <button className="x-btn" onClick={onClose} aria-label="Fermer">✕</button>
+          <button className="x-btn" onClick={dismiss} aria-label="Fermer">
+            <Icon name="x" size={16} />
+          </button>
         </div>
         <div className="drawer-body">{children}</div>
       </aside>
@@ -107,7 +202,14 @@ export function Drawer({
 export function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <span className="switch">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => {
+          tap();
+          onChange(e.target.checked);
+        }}
+      />
       <span className="track" />
       <span className="thumb" />
     </span>
@@ -127,6 +229,7 @@ export function NumPad({
   maxLen?: number;
 }) {
   const press = (k: string) => {
+    tap();
     if (k === 'C') return onChange('');
     if (k === '⌫') return onChange(value.slice(0, -1));
     if (k === '.') {

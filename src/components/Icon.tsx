@@ -6,7 +6,8 @@ export type IconName =
   | 'menu' | 'search' | 'bell' | 'grid' | 'settings' | 'users' | 'chart' | 'truck'
   | 'meat' | 'book' | 'basket' | 'trash' | 'cash' | 'barcode' | 'lock' | 'plus'
   | 'chevron' | 'x' | 'edit' | 'coins' | 'refresh' | 'logout' | 'cloud' | 'printer'
-  | 'image' | 'check' | 'scale' | 'card' | 'credit' | 'drawer' | 'alert';
+  | 'image' | 'check' | 'scale' | 'card' | 'credit' | 'drawer' | 'alert'
+  | 'sun' | 'moon' | 'monitor' | 'dots';
 
 const G: Record<IconName, string> = {
   menu: '<rect x="3" y="5" width="18" height="2.6" rx="1.3"/><rect x="3" y="10.7" width="18" height="2.6" rx="1.3"/><rect x="3" y="16.4" width="18" height="2.6" rx="1.3"/>',
@@ -40,6 +41,10 @@ const G: Record<IconName, string> = {
   credit: '<path fill-rule="evenodd" clip-rule="evenodd" d="M4 5a2 2 0 0 0-2 2v1h20V7a2 2 0 0 0-2-2H4Zm18 5H2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-7ZM5 15a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1Z"/>',
   drawer: '<path fill-rule="evenodd" clip-rule="evenodd" d="M4 4h16a1 1 0 0 1 .9.55l1.8 3.6c.2.14.3.3.3.55V18a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8.7c0-.25.1-.41.3-.55l1.8-3.6A1 1 0 0 1 4 4Zm5 8a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H9Z"/>',
   alert: '<path fill-rule="evenodd" clip-rule="evenodd" d="M10.9 3.6a1.25 1.25 0 0 1 2.2 0l8.5 15A1.25 1.25 0 0 1 20.5 20.5h-17A1.25 1.25 0 0 1 2.4 18.6l8.5-15ZM12 8a1 1 0 0 0-1 1v3.5a1 1 0 1 0 2 0V9a1 1 0 0 0-1-1Zm0 8.4a1.1 1.1 0 1 0 0-2.2 1.1 1.1 0 0 0 0 2.2Z"/>',
+  sun: '<path d="M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/><path d="M12 1.5a1 1 0 0 1 1 1V4a1 1 0 1 1-2 0V2.5a1 1 0 0 1 1-1Zm0 17a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V19.5a1 1 0 0 1 1-1ZM22.5 12a1 1 0 0 1-1 1H20a1 1 0 1 1 0-2h1.5a1 1 0 0 1 1 1Zm-17 0a1 1 0 0 1-1 1H3a1 1 0 1 1 0-2h1.5a1 1 0 0 1 1 1Zm13.9-6.4a1 1 0 0 1 0 1.42l-1.06 1.06a1 1 0 0 1-1.42-1.42l1.07-1.06a1 1 0 0 1 1.41 0ZM7.08 15.5a1 1 0 0 1 0 1.42l-1.06 1.06a1 1 0 1 1-1.42-1.42l1.06-1.06a1 1 0 0 1 1.42 0Zm11.34 1.06a1 1 0 0 1-1.42 1.42l-1.06-1.06a1 1 0 0 1 1.42-1.42l1.06 1.06ZM7.08 8.5a1 1 0 0 1-1.42 0L4.6 7.44a1 1 0 0 1 1.42-1.42l1.06 1.07a1 1 0 0 1 0 1.41Z"/>',
+  moon: '<path d="M20.7 14.1a1 1 0 0 0-1.2-1.3 6.6 6.6 0 0 1-8.3-8.3 1 1 0 0 0-1.3-1.2A8.9 8.9 0 1 0 20.7 14.1Z"/>',
+  monitor: '<path fill-rule="evenodd" clip-rule="evenodd" d="M3 4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h6v2H7a1 1 0 1 0 0 2h10a1 1 0 1 0 0-2h-2v-2h6a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H3Zm10 13h-2v2h2v-2Z"/>',
+  dots: '<path d="M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>',
 };
 
 export function Icon({ name, size = 22, className, style, title }: { name: IconName; size?: number; className?: string; style?: CSSProperties; title?: string }) {
