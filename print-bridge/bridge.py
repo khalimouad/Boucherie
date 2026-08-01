@@ -215,6 +215,17 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self._cors()
+        # --- Private Network Access ---
+        # Quand la caisse est ouverte depuis un site en ligne (Vercel, HTTPS) et
+        # appelle 127.0.0.1, Chrome ajoute un controle supplementaire : il envoie
+        # "Access-Control-Request-Private-Network: true" et exige la reponse
+        # ci-dessous. Sans elle, l'impression est bloquee par le navigateur alors
+        # meme que le pont tourne. Le cas ne se pose pas avec BoucheriePOS.exe,
+        # ou la page et le pont partagent la meme origine.
+        if self.headers.get("Access-Control-Request-Private-Network") == "true":
+            self.send_header("Access-Control-Allow-Private-Network", "true")
+        # Evite un prevol avant chaque ticket.
+        self.send_header("Access-Control-Max-Age", "86400")
         self.end_headers()
 
     def do_HEAD(self):

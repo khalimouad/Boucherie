@@ -107,7 +107,38 @@ tourne déjà et se contente de rouvrir la fenêtre.
 Chaque vente s'imprime alors sans boîte de dialogue, et le tiroir s'ouvre pour
 les paiements en espèces. Le bouton 🗄️ dans la caisse l'ouvre à tout moment.
 
-## 6. Windows 7 — à savoir
+## 6. Utiliser le pont avec le site en ligne (Vercel)
+
+Le pont fonctionne aussi quand la caisse est ouverte depuis le site hébergé,
+sans l'exe. Dans ce cas, seul le pont s'installe sur le PC de la caisse :
+
+1. Copiez `BoucheriePOS.exe` sur la caisse et lancez-le. Il sert aussi
+   l'application en local, mais vous pouvez l'ignorer et continuer d'utiliser
+   l'adresse du site — le pont écoute de la même façon.
+   *(Pour ne pas ouvrir de fenêtre inutile : `"open_browser": false` dans
+   `config.json`.)*
+2. Dans `config.json`, restreignez l'accès à votre site :
+   ```json
+   "allowed_origin": "https://votre-boutique.vercel.app"
+   ```
+   Ainsi, seule votre caisse en ligne peut déclencher une impression.
+3. Dans **Paramètres → Impression directe**, activez le pont, gardez l'adresse
+   `http://127.0.0.1:9123` et collez le jeton.
+
+> **Pourquoi ça marche malgré le HTTPS** : les navigateurs autorisent une page
+> sécurisée à appeler `127.0.0.1`, qu'ils considèrent comme une origine de
+> confiance. Chrome ajoute néanmoins un contrôle supplémentaire
+> (*Private Network Access*) avant chaque appel vers une adresse locale ; le
+> pont y répond, sinon l'impression serait bloquée alors qu'il tourne.
+
+⚠️ **Avec le site en ligne, la caisse a besoin d'internet pour démarrer.** Les
+ventes déjà enregistrées restent dans le navigateur et la vente continue si la
+connexion tombe **en cours de service**, mais si quelqu'un recharge la page ou
+redémarre le PC pendant la coupure, le site ne se charge plus. Le jour où cela
+pose problème, basculez cette machine sur l'exe : mêmes données, à condition
+que la synchronisation cloud soit active des deux côtés (voir section 3).
+
+## 7. Windows 7 — à savoir
 
 Windows 7 ne reçoit plus de navigateur à jour : Chrome y est figé à la version
 109, Firefox ESR 115 est le dernier compatible. L'application est écrite pour
@@ -119,7 +150,7 @@ L'exe fonctionne sur ces trois versions de Windows **à condition d'avoir été
 construit avec Python 3.8 32 bits** (voir ci-dessous). Un exe construit avec
 Python 3.9+ ne démarrera pas sous Windows 7.
 
-## 7. Construire l'exe (développeur)
+## 8. Construire l'exe (développeur)
 
 Sur une machine **Windows** (PyInstaller ne compile pas depuis Linux/macOS) :
 

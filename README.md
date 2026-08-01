@@ -40,6 +40,37 @@ npm run build      # production — dossier dist/
 npm run preview    # prévisualiser le build
 ```
 
+## 🌐 Déploiement
+
+L'application est **un seul code** ; seule la façon de la livrer change.
+
+```
+   ┌──────────────────────────┐        ┌──────────────────────────┐
+   │  Caisse du magasin (PC)  │        │   Mobile du gérant       │
+   │  site Vercel + pont      │        │   site Vercel            │
+   │  imprimante + tiroir     │        │                          │
+   └───────────┬──────────────┘        └───────────┬──────────────┘
+               │  IndexedDB local                  │  IndexedDB local
+               └───────────────┬───────────────────┘
+                               ▼
+                    Supabase · table pos_rows
+                 (synchro temps réel, voir supabase/)
+```
+
+**Site en ligne (Vercel)** — le déploiement courant. Vercel détecte Vite tout
+seul : build `npm run build`, sortie `dist`. Le fichier `vercel.json` ajoute les
+en-têtes de cache et de sécurité. Pour imprimer, installez le pont sur le PC de
+la caisse (voir `print-bridge/README.md`, section 6).
+
+**Application Windows (`BoucheriePOS.exe`)** — même application servie depuis le
+PC, donc elle **démarre sans internet**. À privilégier le jour où une coupure
+réseau ne doit plus pouvoir arrêter la caisse. Voir `print-bridge/README.md`.
+
+> ⚠️ Chaque appareil garde ses données dans **son propre** IndexedDB, et le site
+> en ligne et l'exe sont deux origines distinctes. **C'est la synchronisation
+> cloud qui relie tout le monde** : sans elle, la caisse et le mobile sont deux
+> registres indépendants.
+
 ## 🔑 Comptes par défaut
 
 | Utilisateur | Rôle           | PIN  |
