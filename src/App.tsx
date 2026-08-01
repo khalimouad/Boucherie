@@ -38,6 +38,18 @@ export const NAV: NavDef[] = [
 /** Phones only have room for a handful of dock slots; the rest move behind "More". */
 const DOCK_SLOTS = 4;
 
+/* Network reachability, so a queued change reads as "waiting" and not as a
+   failure — a red badge on a till makes staff think the register is broken. */
+const onlineSubscribe = (fn: () => void) => {
+  window.addEventListener('online', fn);
+  window.addEventListener('offline', fn);
+  return () => {
+    window.removeEventListener('online', fn);
+    window.removeEventListener('offline', fn);
+  };
+};
+const onlineSnapshot = () => navigator.onLine;
+
 export default function App() {
   const { t, lang, setLang } = useI18n();
   const [ready, setReady] = useState(false);
@@ -59,6 +71,7 @@ export default function App() {
 
   const sync = useSyncExternalStore(subscribeSync, getSyncStatus);
   const theme = useSyncExternalStore(subscribeTheme, getTheme);
+  const online = useSyncExternalStore(onlineSubscribe, onlineSnapshot);
 
   if (!ready) {
     return (
@@ -107,18 +120,36 @@ export default function App() {
     }
   };
 
-  const syncState = !sync.enabled ? 'off' : sync.error ? 'err' : sync.syncing || sync.pending > 0 ? 'busy' : 'live';
+  // Losing the network is normal on a shop line and is not a failure: writes
+  // keep queuing locally and flush on reconnect, so it reads amber, not red.
+  const syncState = !sync.enabled
+    ? 'off'
+    : !online
+      ? 'busy'
+      : sync.error
+        ? 'err'
+        : sync.syncing || sync.pending > 0
+          ? 'busy'
+          : 'live';
   // the pill stays short; the descriptive wording lives in the tooltip
   const syncLabel = !sync.enabled
     ? t('offline')
-    : sync.error
-      ? t('errorShort')
-      : sync.syncing
-        ? t('syncing')
-        : sync.pending > 0
-          ? `${sync.pending} ${t('pendingChanges')}`
-          : t('online');
-  const syncTitle = !sync.enabled ? t('cloudOff') : sync.error ? t('cloudError') : t('cloudConnected');
+    : !online
+      ? t('offline')
+      : sync.error
+        ? t('errorShort')
+        : sync.syncing
+          ? t('syncing')
+          : sync.pending > 0
+            ? `${sync.pending} ${t('pendingChanges')}`
+            : t('online');
+  const syncTitle = !sync.enabled
+    ? t('cloudOff')
+    : !online
+      ? t('offlineQueued')
+      : sync.error
+        ? t('cloudError')
+        : t('cloudConnected');
 
   const themeIcon: IconName = theme === 'light' ? 'sun' : theme === 'dark' ? 'moon' : 'monitor';
   const themeLabel = theme === 'light' ? t('themeLight') : theme === 'dark' ? t('themeDark') : t('themeSystem');

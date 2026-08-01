@@ -303,6 +303,10 @@ const dict = {
   item: { fr: 'article', ar: 'سلعة' },
   offline: { fr: 'Hors-ligne', ar: 'بلا أنترنيت' },
   errorShort: { fr: 'Erreur', ar: 'خطأ' },
+  offlineQueued: {
+    fr: 'Hors-ligne — les modifications seront envoyées au retour du réseau',
+    ar: 'بلا أنترنيت — التغييرات غادي تتصيفط ملي يرجع الاتصال',
+  },
   syncing: { fr: 'Synchronisation…', ar: 'جارية المزامنة…' },
   online: { fr: 'En ligne', ar: 'متصل' },
 } as const;

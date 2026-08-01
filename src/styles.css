@@ -605,6 +605,9 @@ label {
   flex-shrink: 0;
   padding: 14px 26px;
   padding-top: calc(14px + var(--safe-t));
+  /* opaque first: color-mix() needs Chromium 111+, and the tills on Windows 7
+     cap out at 108/109 — without this the bar would render transparent */
+  background: var(--surface);
   background: color-mix(in srgb, var(--surface) 82%, transparent);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
@@ -809,6 +812,7 @@ label {
     gap: 2px;
     padding: 6px;
     border-radius: var(--r-xl);
+    background: var(--surface); /* fallback — see .topbar */
     background: color-mix(in srgb, var(--surface) 88%, transparent);
     -webkit-backdrop-filter: blur(18px) saturate(150%);
     backdrop-filter: blur(18px) saturate(150%);
@@ -1249,6 +1253,7 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
   padding: 13px 14px;
   border-radius: var(--r-md);
   background: var(--warn-tint);
+  border: 1px solid var(--border-strong); /* fallback — see .topbar */
   border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
   animation: rise-in-sm var(--t-3) var(--e-out) both;
   animation-delay: calc(var(--i, 0) * 30ms);
@@ -1481,6 +1486,7 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
 .login-card .lang-switch button { color: rgba(255, 255, 255, 0.72); }
 .login-card .lang-switch button.on { background: #fff; color: var(--sl-900); }
 
+.danger-card { border-color: var(--border-strong); /* fallback — see .topbar */ }
 .danger-card { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
 .danger-card .page-title { color: var(--brand-strong); }
 
