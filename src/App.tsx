@@ -6,6 +6,7 @@ import { Drawer, ToastProvider, tap } from './components/shared';
 import { Icon, type IconName } from './components/Icon';
 import { getSyncStatus, initSync, subscribeSync } from './sync';
 import { cycleTheme, getTheme, subscribeTheme } from './theme';
+import { appLogo } from './logo';
 import { fmtQty } from './utils';
 import Login from './components/Login';
 import POS from './pages/POS';
@@ -78,7 +79,7 @@ export default function App() {
       <div className="login-screen">
         <div className="login-card">
           <div className="boot">
-            <div className="login-logo">🥩</div>
+            <img className="login-logo" src={appLogo} alt="" width={76} height={76} />
             <div className="login-sub" style={{ margin: 0 }}>{t('loading')}</div>
             <div className="boot-bar" />
           </div>
@@ -159,7 +160,7 @@ export default function App() {
       <div className="app">
         <aside className="sidebar">
           <div className="sidebar-brand">
-            <span className="logo-emoji"><Icon name="meat" size={21} /></span>
+            <img className="brand-mark" src={appLogo} alt="" width={40} height={40} />
             <span>{t('appName')}</span>
           </div>
           <nav>
@@ -190,7 +191,7 @@ export default function App() {
               <Icon name="menu" size={21} />
             </button>
             <div className="topbar-brand">
-              <span className="tb-logo" aria-hidden="true"><Icon name="meat" size={19} /></span>
+              <img className="brand-mark" src={appLogo} alt="" width={38} height={38} />
               <span style={{ minWidth: 0 }}>
                 <span className="tb-name" style={{ display: 'block' }}>{t('appName')}</span>
                 <span className="tb-page">{t(currentNav.label)}</span>

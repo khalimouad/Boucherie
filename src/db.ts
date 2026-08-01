@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { nowMs, uid } from './utils';
+import { ticketLogo } from './logo';
 
 export type Role = 'admin' | 'manager' | 'cashier';
 export type Unit = 'kg' | 'piece';
@@ -308,11 +309,13 @@ export interface TicketSettings {
 }
 
 export const defaultTicket: TicketSettings = {
-  shopNameFr: 'Boucherie Al Baraka',
-  shopNameAr: 'جزارة البركة',
-  address: 'Av. Hassan II, Casablanca',
-  phone: '05 22 00 00 00',
-  logo: '',
+  shopNameFr: 'Boucherie & Restaurant Abdeddaim',
+  shopNameAr: 'جزارة ومطعم عبد الدايم',
+  // Une seule écriture sur cette ligne : mélanger arabe et latin déclenche le
+  // réordonnancement bidirectionnel et casse la mise en page sur 80 mm.
+  address: 'واحة سيدي إبراهيم، مراكش',
+  phone: '0661859564',
+  logo: ticketLogo,
   showLogo: true,
   showAddress: true,
   showPhone: true,
@@ -387,52 +390,150 @@ export const saveBridgeSettings = (b: BridgeSettings) => db.settings.put({ key: 
 
 const sid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
+/* Catalogue de la maison. Les viandes se vendent au kilo ; tout ce qui sort de
+   la cuisine (tajines, plats, boissons) se vend à la portion.
+
+   `lowStock: -1` partout au départ : le seuil se compare avec
+   `stock <= lowStock`, et un seuil négatif désactive donc l'alerte. Comme le
+   stock démarre à 0, un vrai seuil ferait clignoter « stock bas » sur tout le
+   catalogue dès le premier jour. Chaque article se règle ensuite dans
+   Produits, une fois le stock réel saisi via un achat. */
+const NO_ALERT = -1;
+
+interface SeedItem {
+  n: number;
+  fr: string;
+  ar: string;
+  price: number;
+  unit?: Unit; // défaut : 'piece'
+  low?: number; // défaut : NO_ALERT
+}
+
+const CAT_SEED: { n: number; fr: string; ar: string; color: string; icon: string; items: SeedItem[] }[] = [
+  {
+    n: 101, fr: 'Viandes', ar: 'اللحوم', color: '#b91c1c', icon: '🥩',
+    items: [
+      { n: 201, fr: 'Mouton', ar: 'الغنمي', price: 150, unit: 'kg' },
+      { n: 202, fr: 'Bœuf', ar: 'البقر', price: 100, unit: 'kg' },
+      { n: 203, fr: 'Chèvre', ar: 'المعزي', price: 140, unit: 'kg' },
+      { n: 204, fr: 'Côtelettes', ar: 'كوطليط', price: 200, unit: 'kg' },
+      { n: 205, fr: 'Foie de bœuf', ar: 'كبدة البقر', price: 160, unit: 'kg' },
+      { n: 206, fr: 'Foie de mouton', ar: 'كبدة الغنمي', price: 200, unit: 'kg' },
+      { n: 207, fr: 'Poulet désossé', ar: 'الهبرة ديال الدجاج', price: 70, unit: 'kg' },
+      { n: 208, fr: 'Pilons de poulet', ar: 'بيلو', price: 70, unit: 'kg' },
+      { n: 209, fr: 'Cuisse complète', ar: 'فخض كومبلي', price: 35, unit: 'kg' },
+    ],
+  },
+  {
+    n: 102, fr: 'Préparations & grillades', ar: 'المحضرات والمشوي', color: '#c2410c', icon: '🍢',
+    items: [
+      { n: 221, fr: 'Kefta', ar: 'الكفتة', price: 120, unit: 'kg' },
+      { n: 222, fr: 'Kefta au fromage', ar: 'الكفتة بالفرماج', price: 130, unit: 'kg' },
+      { n: 223, fr: 'Saucisses', ar: 'صوصيص', price: 130, unit: 'kg' },
+      { n: 224, fr: 'Boulfaf', ar: 'بولفاف', price: 200, unit: 'kg' },
+      { n: 225, fr: 'Brochettes de poulet', ar: 'بروشيت دجاج', price: 80, unit: 'kg' },
+      { n: 226, fr: 'Brochettes de mouton', ar: 'بروشيت غنمي', price: 180, unit: 'kg' },
+      { n: 227, fr: 'Brochettes de filet', ar: 'بروشيت لفيلي', price: 180, unit: 'kg' },
+    ],
+  },
+  {
+    n: 103, fr: 'Tajines', ar: 'الطواجين', color: '#b45309', icon: '🍲',
+    items: [
+      { n: 241, fr: 'Tajine bœuf 250 g', ar: 'طاجين بقر 250غ', price: 50 },
+      { n: 242, fr: 'Tajine bœuf 500 g', ar: 'طاجين بقر 500غ', price: 100 },
+      { n: 243, fr: 'Tajine bœuf 750 g', ar: 'طاجين بقر 750غ', price: 150 },
+      { n: 244, fr: 'Tajine bœuf 1 kg', ar: 'طاجين بقر 1000غ', price: 200 },
+      { n: 245, fr: 'Tajine mouton 250 g', ar: 'طاجين غنمي 250غ', price: 60 },
+      { n: 246, fr: 'Tajine mouton 500 g', ar: 'طاجين غنمي 500غ', price: 120 },
+      { n: 247, fr: 'Tajine mouton 750 g', ar: 'طاجين غنمي 750غ', price: 180 },
+      { n: 248, fr: 'Tajine mouton 1 kg', ar: 'طاجين غنمي 1000غ', price: 240 },
+      { n: 249, fr: 'Tajine chèvre 250 g', ar: 'طاجين المعزي 250غ', price: 60 },
+      { n: 250, fr: 'Tajine chèvre 500 g', ar: 'طاجين المعزي 500غ', price: 120 },
+      { n: 251, fr: 'Tajine chèvre 750 g', ar: 'طاجين المعزي 750غ', price: 180 },
+      { n: 252, fr: 'Tajine chèvre 1 kg', ar: 'طاجين المعزي 1000غ', price: 240 },
+    ],
+  },
+  {
+    n: 104, fr: 'Plats & accompagnements', ar: 'المأكولات', color: '#15803d', icon: '🍽️',
+    items: [
+      { n: 271, fr: 'Plat tête d’agneau', ar: 'ماكلة لحم الراس', price: 25 },
+      { n: 272, fr: 'Plat pieds (kraïn)', ar: 'ماكلة كرعين', price: 25 },
+      { n: 273, fr: 'Plat poulet', ar: 'ماكلة دجاج', price: 25 },
+      { n: 274, fr: 'Taqlia', ar: 'تقلية', price: 20 },
+      { n: 275, fr: 'Loubia', ar: 'لوبية', price: 12 },
+      { n: 276, fr: 'Lentilles', ar: 'لعدس', price: 12 },
+      { n: 277, fr: 'Frites', ar: 'فريت', price: 10 },
+      { n: 278, fr: 'Salade marocaine', ar: 'شلاضا مغربية', price: 10 },
+      { n: 279, fr: 'Oignon & tomate grillés', ar: 'بصلة ومطيشة فشواية', price: 7 },
+      { n: 280, fr: 'Bocadillos', ar: 'بوكاديوس', price: 10 },
+      { n: 281, fr: 'Pain', ar: 'خبزة', price: 1 },
+      { n: 282, fr: 'Grillade (au kilo)', ar: 'شواية للكيلو', price: 30, unit: 'kg' },
+    ],
+  },
+  {
+    n: 105, fr: 'Desserts', ar: 'الحلويات', color: '#be185d', icon: '🍰',
+    items: [
+      { n: 291, fr: 'Salade de fruits', ar: 'سلطة فواكه', price: 15 },
+      { n: 292, fr: 'Flan', ar: 'فلو', price: 20 },
+    ],
+  },
+  {
+    n: 106, fr: 'Boissons', ar: 'المشروبات', color: '#0369a1', icon: '🍵',
+    items: [
+      { n: 301, fr: 'Thé (petit)', ar: 'أتاي صغير', price: 10 },
+      { n: 302, fr: 'Thé (moyen)', ar: 'أتاي متوسط', price: 15 },
+      { n: 303, fr: 'Thé (grand)', ar: 'أتاي كبير', price: 20 },
+      { n: 304, fr: 'Limonade maxi', ar: 'موناضا ماكسي', price: 10 },
+      { n: 305, fr: 'Limonade 1 L', ar: 'موناضا إترو', price: 15 },
+      { n: 306, fr: 'Jus de betterave', ar: 'عصير الباربا', price: 10 },
+      { n: 307, fr: 'Jus de mangue', ar: 'عصير مونغ', price: 15 },
+      { n: 308, fr: 'Jus de citron', ar: 'عصير الليمون', price: 15 },
+    ],
+  },
+];
+
 let seeded = false;
 export async function seedIfEmpty() {
   if (seeded) return;
   seeded = true;
-  const userCount = await db.users.count();
-  if (userCount > 0) return;
 
-  await db.users.bulkAdd([
-    { id: sid(1), name: 'Admin', pinHash: await hashPin('1234'), role: 'admin', active: true },
-    { id: sid(2), name: 'Caissier', pinHash: await hashPin('0000'), role: 'cashier', active: true },
-  ] as User[]);
+  // Comptes et catalogue sont semés indépendamment : après une
+  // réinitialisation des données (qui conserve les utilisateurs), le catalogue
+  // doit revenir au rechargement.
+  if ((await db.users.count()) === 0) {
+    await db.users.bulkAdd([
+      { id: sid(1), name: 'Admin', pinHash: await hashPin('1234'), role: 'admin', active: true },
+      { id: sid(2), name: 'Caissier', pinHash: await hashPin('0000'), role: 'cashier', active: true },
+    ] as User[]);
+  }
 
-  const cats: Category[] = [
-    { id: sid(101), nameFr: 'Bœuf', nameAr: 'لحم البقر', color: '#b91c1c', icon: '🥩', sort: 1 },
-    { id: sid(102), nameFr: 'Agneau', nameAr: 'لحم الغنم', color: '#c2410c', icon: '🍖', sort: 2 },
-    { id: sid(103), nameFr: 'Poulet', nameAr: 'الدجاج', color: '#ca8a04', icon: '🍗', sort: 3 },
-    { id: sid(104), nameFr: 'Abats', nameAr: 'الأحشاء', color: '#7e22ce', icon: '🫀', sort: 4 },
-    { id: sid(105), nameFr: 'Préparations', nameAr: 'المحضرات', color: '#15803d', icon: '🥓', sort: 5 },
-  ];
-  await db.categories.bulkAdd(cats);
+  if ((await db.categories.count()) > 0) return;
 
-  const p = (n: number, categoryId: string, nameFr: string, nameAr: string, unit: Unit, price: number, cost: number, stock: number, lowStock: number, code: string): Product => ({
-    id: sid(n), categoryId, nameFr, nameAr, unit, price, cost, stock, lowStock, code, active: true,
-  });
-  await db.products.bulkAdd([
-    p(201, sid(101), 'Viande hachée', 'لحم مفروم', 'kg', 90, 68, 12, 3, '201'),
-    p(202, sid(101), 'Entrecôte', 'أنتركوت', 'kg', 120, 92, 8, 2, '202'),
-    p(203, sid(101), 'Filet de bœuf', 'فيليه البقر', 'kg', 160, 125, 5, 2, '203'),
-    p(204, sid(101), 'Jarret', 'موزات', 'kg', 75, 55, 10, 3, '204'),
-    p(205, sid(102), 'Gigot d’agneau', 'فخذ الغنم', 'kg', 110, 85, 9, 2, '205'),
-    p(206, sid(102), 'Côtelettes', 'قطبان الضلوع', 'kg', 115, 88, 7, 2, '206'),
-    p(207, sid(102), 'Épaule', 'كتف الغنم', 'kg', 95, 72, 6, 2, '207'),
-    p(208, sid(103), 'Poulet entier', 'دجاجة كاملة', 'piece', 55, 40, 15, 4, '208'),
-    p(209, sid(103), 'Escalope', 'إسكالوب', 'kg', 62, 45, 10, 3, '209'),
-    p(210, sid(103), 'Cuisses', 'أفخاذ الدجاج', 'kg', 38, 26, 12, 3, '210'),
-    p(211, sid(104), 'Foie', 'الكبدة', 'kg', 130, 100, 4, 1, '211'),
-    p(212, sid(104), 'Cœur', 'القلب', 'kg', 85, 62, 3, 1, '212'),
-    p(213, sid(105), 'Kefta préparée', 'كفتة محضرة', 'kg', 95, 70, 8, 2, '213'),
-    p(214, sid(105), 'Merguez', 'مركاز', 'kg', 100, 74, 6, 2, '214'),
-    p(215, sid(105), 'Brochettes', 'قطبان مشوية', 'kg', 105, 78, 5, 2, '215'),
-  ]);
+  await db.categories.bulkAdd(
+    CAT_SEED.map((c, i) => ({
+      id: sid(c.n), nameFr: c.fr, nameAr: c.ar, color: c.color, icon: c.icon, sort: i + 1,
+    })) as Category[],
+  );
 
-  await db.suppliers.bulkAdd([
-    { id: sid(301), name: 'Abattoir Municipal', phone: '05 22 11 22 33' },
-    { id: sid(302), name: 'Ferme Atlas Volailles', phone: '06 61 44 55 66' },
-  ] as Supplier[]);
+  await db.products.bulkAdd(
+    CAT_SEED.flatMap((c) =>
+      c.items.map((it): Product => ({
+        id: sid(it.n),
+        categoryId: sid(c.n),
+        nameFr: it.fr,
+        nameAr: it.ar,
+        unit: it.unit ?? 'piece',
+        price: it.price,
+        // Le coût d'achat se remplit tout seul au premier achat enregistré ;
+        // le laisser à 0 évite d'inventer une marge qui fausserait les rapports.
+        cost: 0,
+        stock: 0,
+        lowStock: it.low ?? NO_ALERT,
+        code: String(it.n),
+        active: true,
+      })),
+    ),
+  );
 }
 
 export { uid };

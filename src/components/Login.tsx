@@ -4,6 +4,7 @@ import { db, hashPin, type User } from '../db';
 import { useI18n } from '../i18n';
 import { NumPad, tap } from './shared';
 import { Icon } from './Icon';
+import { appLogo } from '../logo';
 
 export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
   const { t, lang, setLang } = useI18n();
@@ -35,9 +36,7 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <div className="login-logo" aria-hidden="true">
-          <Icon name="meat" size={38} />
-        </div>
+        <img className="login-logo" src={appLogo} alt="" width={76} height={76} />
         <div className="login-title">{t('appName')}</div>
         <div className="login-sub">
           {selected ? `${t('welcome')}, ${selected.name} — ${t('enterPin')}` : t('selectUser')}

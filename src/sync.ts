@@ -9,11 +9,17 @@ import {
 } from './db';
 import { setClockOffset } from './utils';
 
-/* Cloud endpoint of the shop. The publishable key is safe to embed; all data
-   access is gated by Row Level Security + the shop's cloud password. */
-export const SUPABASE_URL = 'https://nkqlwcjgvxkhxhmnrpfc.supabase.co';
-export const SUPABASE_KEY = 'sb_publishable_UhGqkbZO4LFihxJcquAEUg_BOy3gcaO';
-export const CLOUD_EMAIL = 'uncmou+caisse@gmail.com';
+/* Cloud endpoint of the shop, inlined at build time by vite.config.ts (which
+   reads SUPABASE_URL / SUPABASE_ANON_KEY when the host injects them, as
+   Vercel's Supabase integration does). The publishable key is safe to embed;
+   all data access is gated by Row Level Security + the shop's cloud password. */
+declare const __SUPABASE_URL__: string;
+declare const __SUPABASE_KEY__: string;
+declare const __CLOUD_EMAIL__: string;
+
+export const SUPABASE_URL = __SUPABASE_URL__;
+export const SUPABASE_KEY = __SUPABASE_KEY__;
+export const CLOUD_EMAIL = __CLOUD_EMAIL__;
 
 const CONF_KEY = 'pos-cloud';
 const LAST_PULL_KEY = 'pos-last-pull';

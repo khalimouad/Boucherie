@@ -4,7 +4,7 @@ export type Lang = 'fr' | 'ar';
 
 const dict = {
   // general
-  appName: { fr: 'Boucherie POS', ar: 'نقطة بيع الجزارة' },
+  appName: { fr: 'Boucherie & Restaurant Abdeddaim', ar: 'جزارة ومطعم عبد الدايم' },
   loading: { fr: 'Chargement…', ar: 'جارٍ التحميل…' },
   save: { fr: 'Enregistrer', ar: 'حفظ' },
   cancel: { fr: 'Annuler', ar: 'إلغاء' },

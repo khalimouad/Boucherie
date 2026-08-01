@@ -499,17 +499,11 @@ label {
   font-size: 1.02rem;
   letter-spacing: -0.02em;
 }
-.sidebar-brand .logo-emoji {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
+/* L'emblème porte déjà sa pastille ember : le conteneur n'ajoute que l'ombre. */
+.brand-mark {
   flex-shrink: 0;
   border-radius: 13px;
-  color: #fff;
-  background: linear-gradient(140deg, var(--em-400), var(--em-700));
-  box-shadow: 0 6px 16px -5px rgba(233, 75, 56, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: 0 6px 16px -5px rgba(233, 75, 56, 0.55);
 }
 .sidebar nav {
   flex: 1;
@@ -1363,17 +1357,12 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
   animation: pop-in var(--t-4) var(--e-spring) both;
 }
 .login-logo {
+  display: block;
   width: 76px;
   height: 76px;
   margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.4rem;
-  border-radius: 24px;
-  color: #fff;
-  background: linear-gradient(140deg, var(--em-400), var(--em-700));
-  box-shadow: 0 16px 34px -12px rgba(233, 75, 56, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border-radius: 22px;
+  box-shadow: 0 16px 34px -12px rgba(233, 75, 56, 0.85);
   animation: rise-in var(--t-4) var(--e-spring) both;
   animation-delay: 60ms;
 }
