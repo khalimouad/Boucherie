@@ -496,7 +496,9 @@ label {
   gap: 12px;
   padding: 4px 8px 20px;
   font-weight: 800;
-  font-size: 1.02rem;
+  /* le nom de la maison est long : on resserre pour tenir sur deux lignes */
+  font-size: 0.94rem;
+  line-height: 1.25;
   letter-spacing: -0.02em;
 }
 /* L'emblème porte déjà sa pastille ember : le conteneur n'ajoute que l'ombre. */

@@ -219,7 +219,7 @@ export default function POS({ user }: { user: User }) {
                   {p.stock <= p.lowStock && <span className="pc-lowbadge">{t('lowStockAlert')}</span>}
                   <span
                     className="pc-media"
-                    style={{ backgroundImage: `url("${p.image || productImage(cat?.icon ?? '🥩', catColor(p.categoryId))}")` }}
+                    style={{ backgroundImage: `url("${p.image || productImage(p.icon || cat?.icon || '🥩', catColor(p.categoryId))}")` }}
                   >
                     <span className="pc-add" aria-hidden="true"><Icon name="plus" size={18} /></span>
                   </span>

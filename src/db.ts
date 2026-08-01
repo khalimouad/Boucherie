@@ -42,6 +42,7 @@ export interface Product extends Synced {
   lowStock: number;
   code: string; // scale PLU / barcode item code (digits)
   image?: string; // optional product photo (downscaled dataURL)
+  icon?: string; // emoji propre à l'article ; à défaut celui de sa catégorie
   active: boolean;
 }
 
@@ -407,33 +408,34 @@ interface SeedItem {
   price: number;
   unit?: Unit; // défaut : 'piece'
   low?: number; // défaut : NO_ALERT
+  ic?: string; // illustration : emoji de l'article
 }
 
 const CAT_SEED: { n: number; fr: string; ar: string; color: string; icon: string; items: SeedItem[] }[] = [
   {
     n: 101, fr: 'Viandes', ar: 'اللحوم', color: '#b91c1c', icon: '🥩',
     items: [
-      { n: 201, fr: 'Mouton', ar: 'الغنمي', price: 150, unit: 'kg' },
-      { n: 202, fr: 'Bœuf', ar: 'البقر', price: 100, unit: 'kg' },
-      { n: 203, fr: 'Chèvre', ar: 'المعزي', price: 140, unit: 'kg' },
-      { n: 204, fr: 'Côtelettes', ar: 'كوطليط', price: 200, unit: 'kg' },
-      { n: 205, fr: 'Foie de bœuf', ar: 'كبدة البقر', price: 160, unit: 'kg' },
-      { n: 206, fr: 'Foie de mouton', ar: 'كبدة الغنمي', price: 200, unit: 'kg' },
-      { n: 207, fr: 'Blanc de poulet (hbra)', ar: 'الهبرة ديال الدجاج', price: 70, unit: 'kg' },
-      { n: 208, fr: 'Pilons de poulet', ar: 'بيلو', price: 70, unit: 'kg' },
-      { n: 209, fr: 'Cuisse complète', ar: 'فخض كومبلي', price: 35, unit: 'kg' },
+      { n: 201, fr: 'Mouton', ar: 'الغنمي', price: 150, unit: 'kg', ic: '🐑' },
+      { n: 202, fr: 'Bœuf', ar: 'البقر', price: 100, unit: 'kg', ic: '🐄' },
+      { n: 203, fr: 'Chèvre', ar: 'المعزي', price: 140, unit: 'kg', ic: '🐐' },
+      { n: 204, fr: 'Côtelettes', ar: 'كوطليط', price: 200, unit: 'kg', ic: '🍖' },
+      { n: 205, fr: 'Foie de bœuf', ar: 'كبدة البقر', price: 160, unit: 'kg', ic: '🫀' },
+      { n: 206, fr: 'Foie de mouton', ar: 'كبدة الغنمي', price: 200, unit: 'kg', ic: '🫀' },
+      { n: 207, fr: 'Blanc de poulet (hbra)', ar: 'الهبرة ديال الدجاج', price: 70, unit: 'kg', ic: '🐔' },
+      { n: 208, fr: 'Pilons de poulet', ar: 'بيلو', price: 70, unit: 'kg', ic: '🍗' },
+      { n: 209, fr: 'Cuisse complète', ar: 'فخض كومبلي', price: 35, unit: 'kg', ic: '🍗' },
     ],
   },
   {
     n: 102, fr: 'Préparations & grillades', ar: 'المحضرات والمشوي', color: '#c2410c', icon: '🍢',
     items: [
-      { n: 221, fr: 'Kefta', ar: 'الكفتة', price: 120, unit: 'kg' },
-      { n: 222, fr: 'Kefta au fromage', ar: 'الكفتة بالفرماج', price: 130, unit: 'kg' },
-      { n: 223, fr: 'Saucisses', ar: 'صوصيص', price: 130, unit: 'kg' },
-      { n: 224, fr: 'Boulfaf', ar: 'بولفاف', price: 200, unit: 'kg' },
-      { n: 225, fr: 'Brochettes de poulet', ar: 'بروشيت دجاج', price: 80, unit: 'kg' },
-      { n: 226, fr: 'Brochettes de mouton', ar: 'بروشيت غنمي', price: 180, unit: 'kg' },
-      { n: 227, fr: 'Brochettes de filet', ar: 'بروشيت لفيلي', price: 180, unit: 'kg' },
+      { n: 221, fr: 'Kefta', ar: 'الكفتة', price: 120, unit: 'kg', ic: '🧆' },
+      { n: 222, fr: 'Kefta au fromage', ar: 'الكفتة بالفرماج', price: 130, unit: 'kg', ic: '🧀' },
+      { n: 223, fr: 'Saucisses', ar: 'صوصيص', price: 130, unit: 'kg', ic: '🌭' },
+      { n: 224, fr: 'Boulfaf', ar: 'بولفاف', price: 200, unit: 'kg', ic: '🫀' },
+      { n: 225, fr: 'Brochettes de poulet', ar: 'بروشيت دجاج', price: 80, unit: 'kg', ic: '🍢' },
+      { n: 226, fr: 'Brochettes de mouton', ar: 'بروشيت غنمي', price: 180, unit: 'kg', ic: '🍢' },
+      { n: 227, fr: 'Brochettes de filet', ar: 'بروشيت لفيلي', price: 180, unit: 'kg', ic: '🍢' },
     ],
   },
   {
@@ -456,38 +458,38 @@ const CAT_SEED: { n: number; fr: string; ar: string; color: string; icon: string
   {
     n: 104, fr: 'Plats & accompagnements', ar: 'المأكولات', color: '#15803d', icon: '🍽️',
     items: [
-      { n: 271, fr: 'Plat de tête de mouton', ar: 'ماكلة لحم الراس', price: 25 },
-      { n: 272, fr: 'Plat de pieds (kraïn)', ar: 'ماكلة كرعين', price: 25 },
-      { n: 273, fr: 'Plat de poulet', ar: 'ماكلة دجاج', price: 25 },
-      { n: 274, fr: 'Taqlia', ar: 'تقلية', price: 20 },
-      { n: 275, fr: 'Loubia (haricots blancs)', ar: 'لوبية', price: 12 },
-      { n: 276, fr: 'Lentilles', ar: 'لعدس', price: 12 },
-      { n: 277, fr: 'Frites', ar: 'فريت', price: 10 },
-      { n: 278, fr: 'Salade marocaine', ar: 'شلاضا مغربية', price: 10 },
-      { n: 279, fr: 'Oignon & tomate grillés', ar: 'بصلة ومطيشة فشواية', price: 7 },
-      { n: 280, fr: 'Bocadillos', ar: 'بوكاديوس', price: 10 },
-      { n: 281, fr: 'Pain', ar: 'خبزة', price: 1 },
-      { n: 282, fr: 'Grillade (au kilo)', ar: 'شواية للكيلو', price: 30, unit: 'kg' },
+      { n: 271, fr: 'Plat de tête de mouton', ar: 'ماكلة لحم الراس', price: 25, ic: '🐑' },
+      { n: 272, fr: 'Plat de pieds (kraïn)', ar: 'ماكلة كرعين', price: 25, ic: '🍲' },
+      { n: 273, fr: 'Plat de poulet', ar: 'ماكلة دجاج', price: 25, ic: '🍗' },
+      { n: 274, fr: 'Taqlia', ar: 'تقلية', price: 20, ic: '🍳' },
+      { n: 275, fr: 'Loubia (haricots blancs)', ar: 'لوبية', price: 12, ic: '🫘' },
+      { n: 276, fr: 'Lentilles', ar: 'لعدس', price: 12, ic: '🫘' },
+      { n: 277, fr: 'Frites', ar: 'فريت', price: 10, ic: '🍟' },
+      { n: 278, fr: 'Salade marocaine', ar: 'شلاضا مغربية', price: 10, ic: '🥗' },
+      { n: 279, fr: 'Oignon & tomate grillés', ar: 'بصلة ومطيشة فشواية', price: 7, ic: '🧅' },
+      { n: 280, fr: 'Bocadillos', ar: 'بوكاديوس', price: 10, ic: '🥪' },
+      { n: 281, fr: 'Pain', ar: 'خبزة', price: 1, ic: '🍞' },
+      { n: 282, fr: 'Grillade (au kilo)', ar: 'شواية للكيلو', price: 30, unit: 'kg', ic: '🔥' },
     ],
   },
   {
     n: 105, fr: 'Desserts', ar: 'الحلويات', color: '#be185d', icon: '🍰',
     items: [
-      { n: 291, fr: 'Salade de fruits', ar: 'سلطة فواكه', price: 15 },
-      { n: 292, fr: 'Flan', ar: 'فلو', price: 20 },
+      { n: 291, fr: 'Salade de fruits', ar: 'سلطة فواكه', price: 15, ic: '🍉' },
+      { n: 292, fr: 'Flan', ar: 'فلو', price: 20, ic: '🍮' },
     ],
   },
   {
     n: 106, fr: 'Boissons', ar: 'المشروبات', color: '#0369a1', icon: '🍵',
     items: [
-      { n: 301, fr: 'Thé à la menthe (petit)', ar: 'أتاي صغير', price: 10 },
-      { n: 302, fr: 'Thé à la menthe (moyen)', ar: 'أتاي متوسط', price: 15 },
-      { n: 303, fr: 'Thé à la menthe (grand)', ar: 'أتاي كبير', price: 20 },
-      { n: 304, fr: 'Limonade maxi', ar: 'موناضا ماكسي', price: 10 },
-      { n: 305, fr: 'Limonade 1 L', ar: 'موناضا إترو', price: 15 },
-      { n: 306, fr: 'Jus de betterave', ar: 'عصير الباربا', price: 10 },
-      { n: 307, fr: 'Jus de mangue', ar: 'عصير مونغ', price: 15 },
-      { n: 308, fr: 'Jus de citron', ar: 'عصير الليمون', price: 15 },
+      { n: 301, fr: 'Thé à la menthe (petit)', ar: 'أتاي صغير', price: 10, ic: '🍵' },
+      { n: 302, fr: 'Thé à la menthe (moyen)', ar: 'أتاي متوسط', price: 15, ic: '🍵' },
+      { n: 303, fr: 'Thé à la menthe (grand)', ar: 'أتاي كبير', price: 20, ic: '🍵' },
+      { n: 304, fr: 'Limonade maxi', ar: 'موناضا ماكسي', price: 10, ic: '🥤' },
+      { n: 305, fr: 'Limonade 1 L', ar: 'موناضا إترو', price: 15, ic: '🥤' },
+      { n: 306, fr: 'Jus de betterave', ar: 'عصير الباربا', price: 10, ic: '🧃' },
+      { n: 307, fr: 'Jus de mangue', ar: 'عصير مونغ', price: 15, ic: '🥭' },
+      { n: 308, fr: 'Jus de citron', ar: 'عصير الليمون', price: 15, ic: '🍋' },
     ],
   },
 ];
@@ -530,6 +532,7 @@ export async function seedIfEmpty() {
         stock: 0,
         lowStock: it.low ?? NO_ALERT,
         code: String(it.n),
+        icon: it.ic,
         active: true,
       })),
     ),
