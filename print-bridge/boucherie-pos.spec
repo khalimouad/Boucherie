@@ -29,9 +29,11 @@ a = Analysis(  # noqa: F821
     hookspath=[],
     runtime_hooks=[],
     # Modules inutiles a la caisse : les exclure allege l'exe de plusieurs Mo.
+    # NE PAS exclure "email" : http.server s'en sert pour analyser les en-tetes
+    # HTTP (via http.client), et l'exe ne demarrerait pas.
     excludes=[
         "tkinter", "unittest", "pydoc", "doctest", "sqlite3",
-        "xml", "email", "distutils", "lib2to3", "test",
+        "xml", "distutils", "lib2to3", "test",
     ],
     noarchive=False,
 )
