@@ -6,15 +6,17 @@ import { fmtDH, fmtQty, downscaleImage } from '../utils';
 import { Empty, Modal, TableSkeleton, useToast } from '../components/shared';
 import { Icon } from '../components/Icon';
 
-/* Appareil photo : proposé seulement quand l'attribut `capture` est reconnu ET
-   que le pointeur est grossier (tactile). Sur un ordinateur, `capture` est
-   ignoré et le bouton ouvrirait un second sélecteur de fichiers identique au
-   premier — deux boutons pour la même chose. */
-const canCapture =
-  typeof document !== 'undefined' &&
-  'capture' in document.createElement('input') &&
-  typeof matchMedia === 'function' &&
-  matchMedia('(pointer: coarse)').matches;
+/* Appareil photo : proposé sur les appareils tactiles.
+   On ne teste PAS `'capture' in input` : Chrome renvoie false pour cette
+   propriété alors qu'il gère parfaitement l'attribut, ce qui masquait le
+   bouton partout, y compris sur téléphone. De toute façon un navigateur qui
+   ignore `capture` ouvre simplement le sélecteur de fichiers habituel — le
+   seul critère utile est donc « écran tactile », pour éviter un second bouton
+   identique au premier sur un ordinateur. */
+const isTouchDevice =
+  typeof navigator !== 'undefined' &&
+  (navigator.maxTouchPoints > 0 ||
+    (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches));
 
 const COLORS = ['#b91c1c', '#c2410c', '#ca8a04', '#15803d', '#0e7490', '#1d4ed8', '#7e22ce', '#be185d'];
 const ICONS = ['🥩', '🍖', '🍗', '🫀', '🥓', '🐄', '🐑', '🐔', '🦃', '🌭', '🍢', '🧆'];
@@ -243,7 +245,7 @@ export default function Products() {
                   demande la caméra arrière — celle qu'on pointe sur l'étal.
                   L'attribut est posé juste avant l'ouverture puis retiré, car
                   laissé en place il supprimerait l'accès à la galerie. */}
-              {canCapture && (
+              {isTouchDevice && (
                 <button
                   className="btn btn-ghost"
                   onClick={() => {
@@ -264,7 +266,7 @@ export default function Products() {
                   imgRef.current?.click();
                 }}
               >
-                <Icon name="image" size={17} /> {canCapture ? t('chooseImage') : t('photo')}
+                <Icon name="image" size={17} /> {isTouchDevice ? t('chooseImage') : t('photo')}
               </button>
               {editProd.image && (
                 <button className="btn btn-danger" onClick={() => setEditProd({ ...editProd, image: undefined })}>{t('removePhoto')}</button>
