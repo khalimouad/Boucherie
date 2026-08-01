@@ -4,8 +4,10 @@ import {
   db,
   defaultBarcode,
   getBarcodeSettings,
+  getFeatureSettings,
   getTicketSettings,
   uid,
+  type TableOrder,
   type PaymentMethod,
   type Product,
   type Sale,
@@ -50,6 +52,18 @@ export default function POS({ user }: { user: User }) {
   // on phones the cart is a bottom sheet driven by the floating summary bar
   const [cartOpen, setCartOpen] = useState(false);
 
+  /* ---- service en salle ----
+     Une table ouverte garde son addition en base : le caissier peut passer
+     d'une table à l'autre, encaisser au comptoir entre-temps, fermer l'onglet
+     ou changer d'appareil — rien n'est perdu tant que la table n'est pas
+     réglée. `activeTableId` à null = vente directe au comptoir. */
+  const features = useLiveQuery(() => getFeatureSettings(), []);
+  const tablesOn = features?.tablesEnabled !== false;
+  const tableCount = features?.tableCount ?? 12;
+  const openTables = useLiveQuery(() => db.tableOrders.where('status').equals('open').toArray(), []) ?? [];
+  const [activeTableId, setActiveTableId] = useState<string | null>(null);
+  const activeTable = openTables.find((tb) => tb.id === activeTableId) ?? null;
+
   const visible = useMemo(() => {
     let list = products;
     if (catFilter !== null) list = list.filter((p) => p.categoryId === catFilter);
@@ -72,6 +86,54 @@ export default function POS({ user }: { user: User }) {
     const id = setTimeout(() => setBump(false), 340);
     return () => clearTimeout(id);
   }, [subtotal]);
+
+  /* L'addition suit le panier tant que la table est ouverte. On n'écrit que
+     lorsqu'une table est active : au comptoir, le panier reste en mémoire. */
+  useEffect(() => {
+    if (!activeTableId) return;
+    void db.tableOrders.update(activeTableId, { items: cart.map(({ key, ...rest }) => rest) });
+  }, [cart, activeTableId]);
+
+  const selectTable = async (label: string) => {
+    tap();
+    const existing = openTables.find((tb) => tb.label === label);
+    if (existing) {
+      setActiveTableId(existing.id!);
+      setCart(existing.items.map((it, i) => ({ ...it, key: Date.now() + i })));
+      return;
+    }
+    const row: TableOrder = {
+      id: uid(),
+      label,
+      status: 'open',
+      items: [],
+      openedAt: todayISO(),
+      openedBy: user.id!,
+      openedByName: user.name,
+      settledAt: null,
+      saleId: null,
+      note: '',
+    };
+    await db.tableOrders.add(row);
+    setActiveTableId(row.id!);
+    setCart([]);
+    toast(`${t('tableOpened')} ${label}`);
+  };
+
+  const selectCounter = () => {
+    tap();
+    setActiveTableId(null);
+    setCart([]);
+  };
+
+  /** Table ouverte par erreur : on la libère sans produire de vente. */
+  const releaseTable = async () => {
+    if (!activeTableId) return;
+    await db.tableOrders.delete(activeTableId);
+    setActiveTableId(null);
+    setCart([]);
+    toast(t('closeTableEmpty'));
+  };
 
   const addLine = useCallback((p: Product, qty: number) => {
     if (qty <= 0) return;
@@ -144,6 +206,17 @@ export default function POS({ user }: { user: User }) {
       }
       await db.sales.add(sale);
     });
+    // La table n'est libérée qu'une fois la vente enregistrée : c'est tout
+    // l'intérêt de la garder ouverte jusqu'au règlement.
+    if (activeTableId) {
+      await db.tableOrders.update(activeTableId, {
+        status: 'settled',
+        settledAt: todayISO(),
+        saleId: sale.id!,
+        items: sale.items,
+      });
+      setActiveTableId(null);
+    }
     setCart([]);
     setPayModal(false);
     setCartOpen(false);
@@ -175,6 +248,35 @@ export default function POS({ user }: { user: User }) {
         <span className="sch-amount">{fmtDH(session.openingAmount, lang)}</span>
         <span className="sch-chevron" aria-hidden="true">›</span>
       </button>
+      {tablesOn && (
+        <div className="table-bar" role="tablist" aria-label={t('tables')}>
+          <button
+            className={`table-chip counter ${!activeTableId ? 'on' : ''}`}
+            onClick={selectCounter}
+            role="tab"
+            aria-selected={!activeTableId}
+          >
+            <Icon name="basket" size={16} /> {t('counter')}
+          </button>
+          {Array.from({ length: tableCount }, (_, i) => {
+            const label = String(i + 1);
+            const row = openTables.find((tb) => tb.label === label);
+            const total = row ? round2(row.items.reduce((a, it) => a + it.total, 0)) : 0;
+            return (
+              <button
+                key={label}
+                className={`table-chip ${row ? 'busy' : ''} ${activeTable?.label === label ? 'on' : ''}`}
+                onClick={() => void selectTable(label)}
+                role="tab"
+                aria-selected={activeTable?.label === label}
+              >
+                <span className="tc-label">{t('table')} {label}</span>
+                <span className="tc-sub">{row ? fmtDH(total, lang) : t('freeTable')}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="pos">
       <div className="pos-left">
         <div className="pos-search">
@@ -248,7 +350,7 @@ export default function POS({ user }: { user: User }) {
             <div className={`cb-total ${bump ? 'total-bump' : ''}`}>{fmtDH(subtotal, lang)}</div>
           </div>
           <button className="cb-pay" onClick={() => { tap(); setPayModal(true); }}>
-            <Icon name="cash" size={18} /> {t('pay')}
+            <Icon name="cash" size={18} /> {activeTable ? t('settleTable') : t('pay')}
           </button>
         </div>
       )}
@@ -257,7 +359,10 @@ export default function POS({ user }: { user: User }) {
 
       <div className={`pos-cart ${cartOpen ? 'open' : ''}`}>
         <div className="cart-head">
-          <h2><Icon name="basket" size={20} /> {t('cart')} ({cart.length})</h2>
+          <h2>
+            <Icon name={activeTable ? 'grid' : 'basket'} size={20} />
+            {activeTable ? `${t('table')} ${activeTable.label}` : t('cart')} ({cart.length})
+          </h2>
           <div className="ch-actions">
             <button className="btn-icon sm" onClick={handleOpenDrawer} aria-label={t('openDrawer')} title={t('openDrawer')}><Icon name="drawer" size={19} /></button>
             {cart.length > 0 && (
@@ -288,9 +393,15 @@ export default function POS({ user }: { user: User }) {
           </div>
         </div>
         <div className="cart-actions">
-          <button className="btn-checkout" disabled={cart.length === 0} onClick={() => { tap(); setPayModal(true); }}>
-            <Icon name="cash" size={20} /> {t('pay')}
-          </button>
+          {activeTable && cart.length === 0 ? (
+            <button className="btn btn-ghost btn-block" onClick={() => void releaseTable()}>
+              <Icon name="x" size={18} /> {t('closeTableEmpty')}
+            </button>
+          ) : (
+            <button className="btn-checkout" disabled={cart.length === 0} onClick={() => { tap(); setPayModal(true); }}>
+              <Icon name="cash" size={20} /> {activeTable ? t('settleTable') : t('pay')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -672,10 +783,12 @@ function PayModal({
     (v, i, a) => a.indexOf(v) === i,
   );
 
-  const methods: { id: PaymentMethod; icon: 'cash' | 'card' | 'credit'; label: string }[] = [
+  /* Le crédit est retiré du choix de paiement : rien ne sort sans être réglé.
+     Le type PaymentMethod le garde pour que les ventes déjà enregistrées
+     continuent de s'afficher correctement dans les rapports. */
+  const methods: { id: PaymentMethod; icon: 'cash' | 'card'; label: string }[] = [
     { id: 'cash', icon: 'cash', label: t('cash') },
     { id: 'card', icon: 'card', label: t('card') },
-    { id: 'credit', icon: 'credit', label: t('credit') },
   ];
 
   return (
@@ -691,7 +804,7 @@ function PayModal({
         </>
       }
     >
-      <div className="pay-methods">
+      <div className="pay-methods" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
         {methods.map((m) => (
           <button key={m.id} className={`pay-method ${payment === m.id ? 'on' : ''}`} onClick={() => setPayment(m.id)}>
             <span className="pm-icon"><Icon name={m.icon} size={22} /></span>

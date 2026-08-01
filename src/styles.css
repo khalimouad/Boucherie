@@ -1684,6 +1684,67 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
 .scan-btn:active { transform: scale(0.93); }
 @media (hover: hover) { .scan-btn:hover { background: var(--em-500); color: #fff; } }
 
+/* ---- service en salle : sélecteur de tables ---- */
+.table-bar {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.table-bar::-webkit-scrollbar { display: none; }
+.table-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  min-width: 92px;
+  min-height: 52px;
+  padding: 8px 13px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  text-align: start;
+  transition: background var(--t-2) var(--e-out), border-color var(--t-2) var(--e-out),
+    color var(--t-2) var(--e-out), transform var(--t-1) var(--e-out), box-shadow var(--t-2) var(--e-out);
+}
+.table-chip:active { transform: scale(0.96); }
+@media (hover: hover) { .table-chip:hover { border-color: var(--border-strong); } }
+.table-chip .tc-label { font-size: 0.86rem; font-weight: 750; letter-spacing: -0.01em; }
+.table-chip .tc-sub { font-size: 0.72rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+/* table occupée : liseré ambre + total en évidence */
+.table-chip.busy {
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border));
+  background: var(--warn-tint);
+}
+.table-chip.busy .tc-sub { color: var(--warn-strong); font-weight: 750; }
+/* table en cours d'encaissement */
+.table-chip.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+  box-shadow: var(--sh-2);
+}
+.table-chip.on .tc-sub { color: color-mix(in srgb, var(--surface) 75%, transparent); }
+.table-chip.counter {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+@media (max-width: 640px) {
+  .table-chip { min-width: 84px; min-height: 48px; padding: 7px 11px; }
+}
+
 /* category chips */
 .cat-chips {
   display: flex;

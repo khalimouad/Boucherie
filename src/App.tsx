@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, seedIfEmpty, type Role, type User } from './db';
+import { db, getFeatureSettings, seedIfEmpty, type Role, type User } from './db';
 import { localName, useI18n, type TKey } from './i18n';
 import { Drawer, ToastProvider, tap } from './components/shared';
 import { Icon, type IconName } from './components/Icon';
@@ -60,6 +60,9 @@ export default function App() {
   const [alertsOpen, setAlertsOpen] = useState(false);
 
   const lowStock = useLiveQuery(() => db.products.filter((p) => p.active && p.stock <= p.lowStock).toArray(), []) ?? [];
+  // Modules activés pour la boutique : réglage synchronisé, donc une bascule
+  // faite sur la caisse retire aussi l'onglet sur le mobile du gérant.
+  const features = useLiveQuery(() => getFeatureSettings(), []);
 
   useEffect(() => {
     seedIfEmpty()
@@ -96,7 +99,9 @@ export default function App() {
     );
   }
 
-  const allowed = NAV.filter((n) => n.roles.includes(user.role));
+  const allowed = NAV.filter(
+    (n) => n.roles.includes(user.role) && !(n.id === 'waste' && features && !features.wasteEnabled),
+  );
   const current = allowed.some((n) => n.id === page) ? page : 'pos';
   const currentNav = allowed.find((n) => n.id === current)!;
   const go = (id: PageId) => {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, getTicketSettings, type CashSession, type Sale } from '../db';
+import { db, getFeatureSettings, getTicketSettings, type CashSession, type Sale } from '../db';
 import { localName, useI18n } from '../i18n';
 import { dateInputValue, downloadCSV, fmtDH, fmtDateTime, round2, startOfDay } from '../utils';
 import { Empty, Modal, useToast } from '../components/shared';
@@ -19,6 +19,9 @@ export default function Reports() {
   const [fromStr, setFromStr] = useState(dateInputValue(new Date()));
   const [toStr, setToStr] = useState(dateInputValue(new Date()));
   const [detail, setDetail] = useState<Sale | null>(null);
+  // L'onglet Freinte suit le module : désactivé, il disparaît des rapports.
+  const features = useLiveQuery(() => getFeatureSettings(), []);
+  const wasteOn = features?.wasteEnabled !== false;
 
   const [fromISO, toISO] = useMemo(() => {
     const now = new Date();
@@ -155,7 +158,9 @@ export default function Reports() {
         <div className="seg">
           <button className={tab === 'sales' ? 'on' : ''} onClick={() => setTab('sales')}><Icon name="cash" size={16} /> {t('salesReport')}</button>
           <button className={tab === 'purchases' ? 'on' : ''} onClick={() => setTab('purchases')}><Icon name="truck" size={16} /> {t('purchasesReport')}</button>
-          <button className={tab === 'waste' ? 'on' : ''} onClick={() => setTab('waste')}><Icon name="scale" size={16} /> {t('wasteReport')}</button>
+          {wasteOn && (
+            <button className={tab === 'waste' ? 'on' : ''} onClick={() => setTab('waste')}><Icon name="scale" size={16} /> {t('wasteReport')}</button>
+          )}
           <button className={tab === 'sessions' ? 'on' : ''} onClick={() => setTab('sessions')}><Icon name="drawer" size={16} /> {t('cashSessionsReport')}</button>
         </div>
         <div className="ph-actions">
@@ -290,7 +295,7 @@ export default function Reports() {
         </>
       )}
 
-      {tab === 'waste' && (
+      {tab === 'waste' && wasteOn && (
         <>
           <div className="stats-grid">
             <div className="stat red">

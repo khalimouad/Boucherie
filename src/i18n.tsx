@@ -294,6 +294,28 @@ const dict = {
   ongoing: { fr: 'en cours', ar: 'جارية' },
   printReport: { fr: 'Imprimer le rapport', ar: 'طبع التقرير' },
 
+  // modules & salle
+  modules: { fr: 'Modules', ar: 'الوحدات' },
+  modulesHint: {
+    fr: 'Active ou désactive des parties de l’application pour tous les utilisateurs.',
+    ar: 'كتفعّل ولا كتوقّف أجزاء من التطبيق لجميع المستخدمين.',
+  },
+  enableWaste: { fr: 'Module Freinte', ar: 'وحدة الكسور' },
+  enableTables: { fr: 'Service en salle (tables)', ar: 'الخدمة فالصالة (الطاولات)' },
+  tableCount: { fr: 'Nombre de tables', ar: 'عدد الطاولات' },
+  tables: { fr: 'Tables', ar: 'الطاولات' },
+  table: { fr: 'Table', ar: 'طاولة' },
+  counter: { fr: 'Comptoir', ar: 'الكونطوار' },
+  freeTable: { fr: 'libre', ar: 'خاوية' },
+  openTable: { fr: 'Ouvrir la table', ar: 'حل الطاولة' },
+  tableOpened: { fr: 'Table ouverte', ar: 'تحلات الطاولة' },
+  tableSettled: { fr: 'Table réglée', ar: 'تخلصات الطاولة' },
+  settleTable: { fr: 'Régler la table', ar: 'خلّص الطاولة' },
+  openTables: { fr: 'Tables ouvertes', ar: 'الطاولات المحلولة' },
+  addToTable: { fr: 'Ajouté à la table', ar: 'تزاد للطاولة' },
+  closeTableEmpty: { fr: 'Libérer la table', ar: 'حرّر الطاولة' },
+  tableEmptyHint: { fr: 'Table vide — rien à régler', ar: 'الطاولة خاوية — ماكاين ما يتخلص' },
+
   // shell / appearance
   more: { fr: 'Plus', ar: 'المزيد' },
   appearance: { fr: 'Apparence', ar: 'المظهر' },

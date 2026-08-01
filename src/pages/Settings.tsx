@@ -9,6 +9,9 @@ import {
   saveBarcodeSettings,
   saveBridgeSettings,
   saveTicketSettings,
+  getFeatureSettings,
+  saveFeatureSettings,
+  type FeatureSettings,
   type BarcodeSettings,
   type BridgeSettings,
   type Sale,
@@ -94,6 +97,52 @@ function CloudCard() {
             <Icon name="refresh" size={17} /> {t('syncNow')}
           </button>
           <button className="btn btn-danger" onClick={() => void disableSync()}>{t('cloudDisable')}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModulesCard() {
+  const { t } = useI18n();
+  const { toast } = useToast();
+  const saved = useLiveQuery(() => getFeatureSettings(), []);
+  const [f, setF] = useState<FeatureSettings | null>(null);
+  useEffect(() => { if (saved && !f) setF(saved); }, [saved, f]);
+  if (!f) return null;
+
+  // Écriture immédiate : ces bascules changent la navigation de tous les
+  // appareils, mieux vaut qu'elles ne dépendent pas d'un bouton « Enregistrer »
+  // qu'on oublie de presser.
+  const up = async (patch: Partial<FeatureSettings>) => {
+    const next = { ...f, ...patch };
+    setF(next);
+    await saveFeatureSettings(next);
+    toast(t('settingsSaved'));
+  };
+
+  return (
+    <div className="card card-pad" style={{ marginBottom: 14 }}>
+      <h2 className="page-title"><Icon name="grid" size={20} /> {t('modules')}</h2>
+      <p style={{ color: 'var(--text-2)', fontSize: '0.9rem', marginBottom: 12 }}>{t('modulesHint')}</p>
+      <div className="switch-row">
+        <span><Icon name="scale" size={17} style={{ verticalAlign: '-3px', marginInlineEnd: 8 }} />{t('enableWaste')}</span>
+        <Switch checked={f.wasteEnabled} onChange={(v) => up({ wasteEnabled: v })} />
+      </div>
+      <div className="switch-row">
+        <span><Icon name="grid" size={17} style={{ verticalAlign: '-3px', marginInlineEnd: 8 }} />{t('enableTables')}</span>
+        <Switch checked={f.tablesEnabled} onChange={(v) => up({ tablesEnabled: v })} />
+      </div>
+      {f.tablesEnabled && (
+        <div className="field" style={{ marginTop: 14 }}>
+          <label>{t('tableCount')}</label>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={f.tableCount}
+            onChange={(e) => up({ tableCount: Math.max(1, Math.min(60, Number(e.target.value) || 1)) })}
+          />
         </div>
       )}
     </div>
@@ -340,6 +389,7 @@ export default function Settings() {
 
       <div className="grid-2">
         <div>
+          <ModulesCard />
           <AppearanceCard />
           <CloudCard />
           <BridgeCard />

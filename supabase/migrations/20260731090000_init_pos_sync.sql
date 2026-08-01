@@ -33,7 +33,8 @@ create table if not exists public.pos_rows (
   constraint pos_rows_table_name_check check (
     table_name in (
       'users', 'categories', 'products', 'suppliers', 'purchases',
-      'sales', 'waste', 'settings', 'cashSessions', 'cashMovements'
+      'sales', 'waste', 'settings', 'cashSessions', 'cashMovements',
+      'tableOrders'
     )
   )
 );

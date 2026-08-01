@@ -152,6 +152,25 @@ export interface CashSession extends Synced {
   status: 'open' | 'closed';
 }
 
+/** Addition ouverte sur une table de salle, réglée en une fois à la fin.
+ *  Une ligne par service : la table libérée garde son addition en historique
+ *  plutôt que d'être réutilisée, ce qui permet de retrouver ce qui a été servi. */
+/* Nom de magasin `tableOrders` et non `tables` : Dexie réserve `db.tables`
+   pour son propre tableau de magasins, et l'y déclarer masque silencieusement
+   le magasin — tout appel échoue alors en « .where is not a function ». */
+export interface TableOrder extends Synced {
+  id?: string;
+  label: string; // « 3 » — numéro affiché sur la table
+  status: 'open' | 'settled';
+  items: SaleItem[];
+  openedAt: string; // ISO
+  openedBy: string;
+  openedByName: string;
+  settledAt: string | null;
+  saleId: string | null; // vente produite au règlement
+  note: string;
+}
+
 export const SYNCED_TABLES = [
   'users',
   'categories',
@@ -163,6 +182,7 @@ export const SYNCED_TABLES = [
   'settings',
   'cashSessions',
   'cashMovements',
+  'tableOrders',
 ] as const;
 export type SyncedTable = (typeof SYNCED_TABLES)[number];
 
@@ -177,6 +197,7 @@ export const db = new Dexie('boucherie-pos-2') as Dexie & {
   settings: EntityTable<Setting, 'key'>;
   cashSessions: EntityTable<CashSession, 'id'>;
   cashMovements: EntityTable<CashMovement, 'id'>;
+  tableOrders: EntityTable<TableOrder, 'id'>;
 };
 
 db.version(1).stores({
@@ -201,6 +222,20 @@ db.version(2).stores({
   settings: 'key',
   cashSessions: 'id, status, openedAt',
   cashMovements: 'id, sessionId, date',
+});
+
+db.version(3).stores({
+  users: 'id, name, role',
+  categories: 'id, sort',
+  products: 'id, categoryId, nameFr, active',
+  suppliers: 'id, name',
+  purchases: 'id, date, supplierId',
+  sales: 'id, date, number, userId',
+  waste: 'id, date, productId, reason',
+  settings: 'key',
+  cashSessions: 'id, status, openedAt',
+  cashMovements: 'id, sessionId, date',
+  tableOrders: 'id, status, label, openedAt',
 });
 
 /* ---- sync change tracking ----
@@ -384,6 +419,24 @@ export const defaultBridge: BridgeSettings = {
 
 export const getBridgeSettings = () => getJsonSetting('bridge', defaultBridge);
 export const saveBridgeSettings = (b: BridgeSettings) => db.settings.put({ key: 'bridge', value: JSON.stringify(b) });
+
+/** Modules activables pour toute la boutique. Ce réglage est synchronisé comme
+ *  le reste : le désactiver sur la caisse le désactive aussi sur le mobile. */
+export interface FeatureSettings {
+  wasteEnabled: boolean; // module Freinte
+  tablesEnabled: boolean; // service en salle
+  tableCount: number; // nombre de tables affichées
+}
+
+export const defaultFeatures: FeatureSettings = {
+  wasteEnabled: true,
+  tablesEnabled: true,
+  tableCount: 12,
+};
+
+export const getFeatureSettings = () => getJsonSetting('features', defaultFeatures);
+export const saveFeatureSettings = (f: FeatureSettings) =>
+  db.settings.put({ key: 'features', value: JSON.stringify(f) });
 
 /* ---- seed ----
    Seed ids are fixed so that two freshly-installed devices that later join the
