@@ -60,6 +60,9 @@ create index if not exists pos_rows_table_live_idx
 create or replace function public.pos_rows_touch()
 returns trigger
 language plpgsql
+-- search_path figé : sans lui, un objet homonyme créé dans un schéma en amont
+-- du chemin de recherche pourrait détourner l'exécution du trigger.
+set search_path = pg_catalog, public
 as $$
 begin
   new.updated_at := clock_timestamp();
@@ -161,3 +164,11 @@ $$;
 
 comment on function public.pos_rows_purge_tombstones(int) is
   'Deletes deletion markers older than N days. Only run it once every device has synced past that point.';
+
+-- PostgREST expose toute fonction du schéma public en RPC. Celle-ci est
+-- SECURITY DEFINER : laissée ouverte, un appel anonyme sur
+-- /rest/v1/rpc/pos_rows_purge_tombstones supprimerait les marqueurs de
+-- suppression, et les appareils pas encore synchronisés verraient réapparaître
+-- des articles supprimés. Réservée à l'administration.
+revoke all on function public.pos_rows_purge_tombstones(int) from public, anon, authenticated;
+grant execute on function public.pos_rows_purge_tombstones(int) to service_role;
