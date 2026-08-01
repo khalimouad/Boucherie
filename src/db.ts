@@ -419,7 +419,7 @@ const CAT_SEED: { n: number; fr: string; ar: string; color: string; icon: string
       { n: 204, fr: 'Côtelettes', ar: 'كوطليط', price: 200, unit: 'kg' },
       { n: 205, fr: 'Foie de bœuf', ar: 'كبدة البقر', price: 160, unit: 'kg' },
       { n: 206, fr: 'Foie de mouton', ar: 'كبدة الغنمي', price: 200, unit: 'kg' },
-      { n: 207, fr: 'Poulet désossé', ar: 'الهبرة ديال الدجاج', price: 70, unit: 'kg' },
+      { n: 207, fr: 'Blanc de poulet (hbra)', ar: 'الهبرة ديال الدجاج', price: 70, unit: 'kg' },
       { n: 208, fr: 'Pilons de poulet', ar: 'بيلو', price: 70, unit: 'kg' },
       { n: 209, fr: 'Cuisse complète', ar: 'فخض كومبلي', price: 35, unit: 'kg' },
     ],
@@ -456,11 +456,11 @@ const CAT_SEED: { n: number; fr: string; ar: string; color: string; icon: string
   {
     n: 104, fr: 'Plats & accompagnements', ar: 'المأكولات', color: '#15803d', icon: '🍽️',
     items: [
-      { n: 271, fr: 'Plat tête d’agneau', ar: 'ماكلة لحم الراس', price: 25 },
-      { n: 272, fr: 'Plat pieds (kraïn)', ar: 'ماكلة كرعين', price: 25 },
-      { n: 273, fr: 'Plat poulet', ar: 'ماكلة دجاج', price: 25 },
+      { n: 271, fr: 'Plat de tête de mouton', ar: 'ماكلة لحم الراس', price: 25 },
+      { n: 272, fr: 'Plat de pieds (kraïn)', ar: 'ماكلة كرعين', price: 25 },
+      { n: 273, fr: 'Plat de poulet', ar: 'ماكلة دجاج', price: 25 },
       { n: 274, fr: 'Taqlia', ar: 'تقلية', price: 20 },
-      { n: 275, fr: 'Loubia', ar: 'لوبية', price: 12 },
+      { n: 275, fr: 'Loubia (haricots blancs)', ar: 'لوبية', price: 12 },
       { n: 276, fr: 'Lentilles', ar: 'لعدس', price: 12 },
       { n: 277, fr: 'Frites', ar: 'فريت', price: 10 },
       { n: 278, fr: 'Salade marocaine', ar: 'شلاضا مغربية', price: 10 },
@@ -480,9 +480,9 @@ const CAT_SEED: { n: number; fr: string; ar: string; color: string; icon: string
   {
     n: 106, fr: 'Boissons', ar: 'المشروبات', color: '#0369a1', icon: '🍵',
     items: [
-      { n: 301, fr: 'Thé (petit)', ar: 'أتاي صغير', price: 10 },
-      { n: 302, fr: 'Thé (moyen)', ar: 'أتاي متوسط', price: 15 },
-      { n: 303, fr: 'Thé (grand)', ar: 'أتاي كبير', price: 20 },
+      { n: 301, fr: 'Thé à la menthe (petit)', ar: 'أتاي صغير', price: 10 },
+      { n: 302, fr: 'Thé à la menthe (moyen)', ar: 'أتاي متوسط', price: 15 },
+      { n: 303, fr: 'Thé à la menthe (grand)', ar: 'أتاي كبير', price: 20 },
       { n: 304, fr: 'Limonade maxi', ar: 'موناضا ماكسي', price: 10 },
       { n: 305, fr: 'Limonade 1 L', ar: 'موناضا إترو', price: 15 },
       { n: 306, fr: 'Jus de betterave', ar: 'عصير الباربا', price: 10 },
