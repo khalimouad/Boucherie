@@ -268,6 +268,14 @@ const dict = {
   openRegister: { fr: 'Ouvrir la caisse', ar: 'حل الصندوق' },
   closeRegister: { fr: 'Fermer la caisse', ar: 'سد الصندوق' },
   registerClosed: { fr: 'La caisse est fermée', ar: 'الصندوق مسدود' },
+  registerSharedHint: {
+    fr: 'Une seule caisse pour toute la boutique : une fois ouverte ici, elle l’est sur tous les appareils synchronisés.',
+    ar: 'صندوق واحد للمحل كامل: ملي يتحل هنا، كيتحل ف جميع الأجهزة المزامنة.',
+  },
+  registerNeedsSync: {
+    fr: 'Synchronisation cloud désactivée : la caisse reste propre à cet appareil. Activez-la dans Paramètres pour une caisse unique partagée.',
+    ar: 'المزامنة السحابية موقوفة: الصندوق خاص بهاد الجهاز فقط. فعّلها فالإعدادات باش يكون صندوق واحد مشترك.',
+  },
   registerClosedHint: {
     fr: 'Déclarez le fond de caisse de départ pour commencer à vendre.',
     ar: 'دخّل مبلغ البداية باش تبدا تبيع.',

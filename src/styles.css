@@ -1063,7 +1063,10 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
 .modal {
   width: 100%;
   max-width: 520px;
-  max-height: min(92dvh, 900px);
+  /* % du fond fixe (inset:0 = fenêtre) plutôt que dvh : sur iOS Safari le
+     dvh se recalcule avec la barre d'URL et la feuille dépassait sous le bas
+     de l'écran, emportant ses boutons Annuler/Enregistrer avec elle. */
+  max-height: min(92%, 900px);
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -1128,7 +1131,7 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
   .modal-backdrop { align-items: flex-end; padding: 0; }
   .modal {
     max-width: none;
-    max-height: 92dvh;
+    max-height: 92%;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     border-bottom: none;
     animation: sheet-up var(--t-3) var(--e-out) both;
@@ -1199,7 +1202,7 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
     top: auto;
     inset-inline: 0;
     width: auto;
-    max-height: 88dvh;
+    max-height: 88%;
     border-inline-start: none;
     border-top: 1px solid var(--border);
     border-radius: var(--r-xl) var(--r-xl) 0 0;
@@ -1314,7 +1317,11 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
   padding: 22px;
   padding-top: calc(22px + var(--safe-t));
   padding-bottom: calc(22px + var(--safe-b));
-  overflow: hidden;
+  /* les halos débordent volontairement à gauche/droite : on masque
+     l'horizontal, mais le vertical doit défiler — sur un petit écran, le
+     clavier PIN dépasse et serait sinon inaccessible */
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--rail);
   color: var(--rail-ink);
 }
@@ -1482,15 +1489,33 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
 .danger-card .page-title { color: var(--brand-strong); }
 
 /* "register closed" panel reuses the login canvas, inset in the page */
+/* `height: auto` et non `100%` : le panneau hérite de `overflow: hidden` (qui
+   contient les halos), et une hauteur figée à 100 % rognait tout ce qui
+   dépassait — sur iPhone, le pavé numérique et le bouton « Ouvrir la caisse »
+   se retrouvaient hors du cadre, donc inatteignables. La hauteur suit
+   désormais le contenu et c'est la page qui défile. */
 .register-screen {
-  min-height: 420px;
-  height: 100%;
+  min-height: 0;
+  height: auto;
+  /* Pas de défilement interne : deux zones défilantes imbriquées et le
+     navigateur fait glisser la mauvaise — le bouton restait sous la barre
+     d'onglets. C'est `.content` qui défile, le panneau suit son contenu. */
+  overflow: visible;
   border-radius: var(--r-xl);
   border: 1px solid var(--border);
   box-shadow: var(--sh-2);
   padding: 20px;
 }
+/* les halos déborderaient du panneau sans overflow:hidden — le dégradé suffit */
+.register-screen::before,
+.register-screen::after { display: none; }
 .register-screen .login-card { box-shadow: none; }
+/* Le panneau dépasse la hauteur de `.content`, et le padding-bottom du
+   conteneur défilant ne s'applique pas à ce dépassement : sans réserve propre,
+   le bouton « Ouvrir la caisse » finit sous la barre d'onglets flottante. */
+@media (max-width: 960px) {
+  .register-screen { padding-bottom: calc(20px + var(--dock-h) + var(--safe-b)); }
+}
 
 .btn-back svg { transform: scaleX(-1); }
 [dir='rtl'] .btn-back svg { transform: none; }
@@ -2015,7 +2040,7 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
     inset-inline: 0;
     bottom: 0;
     width: auto;
-    max-height: 82dvh;
+    max-height: 82%;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     border-inline: none;
     border-bottom: none;
@@ -2038,7 +2063,7 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
     border-radius: var(--r-full);
     background: var(--border-strong);
   }
-  .cart-items { max-height: 46dvh; }
+  .cart-items { max-height: 46vh; max-height: 46dvh; }
 
   .cart-sheet-backdrop {
     display: block;
@@ -2423,4 +2448,26 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
 
 @media print {
   body * { visibility: hidden; }
+}
+
+/* note d'information sur l'écran « caisse fermée » */
+.register-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding: 11px 13px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: start;
+  color: rgba(255, 255, 255, 0.86);
+}
+.register-note svg { flex-shrink: 0; margin-top: 1px; }
+.register-note.warn {
+  background: rgba(207, 138, 9, 0.18);
+  border-color: rgba(226, 165, 42, 0.42);
+  color: #ffe6b8;
 }

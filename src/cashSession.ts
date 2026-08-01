@@ -1,8 +1,41 @@
 import { db, uid, type CashMovement, type CashMovementType, type CashSession, type User } from './db';
 import { round2, todayISO } from './utils';
 
-export function getOpenSession(): Promise<CashSession | undefined> {
-  return db.cashSessions.where('status').equals('open').first();
+/** La caisse est unique pour toute la boutique : une seule session ouverte à la
+ *  fois, partagée par tous les appareils via la synchronisation. On retient
+ *  systématiquement la plus ancienne — `.first()` sur l'index `status` ne
+ *  garantit aucun ordre, et deux appareils pourraient afficher une session
+ *  différente. */
+export async function getOpenSession(): Promise<CashSession | undefined> {
+  const open = await db.cashSessions.where('status').equals('open').toArray();
+  if (open.length <= 1) return open[0];
+  return [...open].sort((a, b) => a.openedAt.localeCompare(b.openedAt))[0];
+}
+
+/** Deux appareils hors-ligne peuvent chacun ouvrir la caisse ; à la
+ *  reconnexion, les deux sessions arrivent. On garde la plus ancienne — elle
+ *  couvre déjà toutes les ventes, les totaux étant calculés sur la plage de
+ *  dates depuis son ouverture — et on referme les doublons pour que la
+ *  boutique retrouve une caisse unique. */
+export async function reconcileOpenSessions(): Promise<void> {
+  const open = await db.cashSessions.where('status').equals('open').toArray();
+  if (open.length <= 1) return;
+  const [keep, ...dupes] = [...open].sort((a, b) => a.openedAt.localeCompare(b.openedAt));
+  for (const d of dupes) {
+    await db.cashSessions.update(d.id!, {
+      status: 'closed',
+      closedAt: d.openedAt,
+      closedBy: d.openedBy,
+      closedByName: d.openedByName,
+      countedAmount: 0,
+      expectedAmount: 0,
+      difference: 0,
+      cashSalesTotal: 0,
+      cashInTotal: 0,
+      cashOutTotal: 0,
+      note: `Doublon fusionné avec la caisse ouverte le ${keep.openedAt}`,
+    });
+  }
 }
 
 export async function openSession(user: User, openingAmount: number, note = ''): Promise<CashSession> {

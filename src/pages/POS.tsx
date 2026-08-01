@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   db,
@@ -22,7 +22,8 @@ import { printSaleTicket, printSessionReport } from '../print';
 import { parseBarcode, useScanner } from '../barcode';
 import { productImage } from '../productImages';
 import { openDrawerViaBridge } from '../printBridge';
-import { addCashMovement, closeSession, computeSessionTotals, openSession } from '../cashSession';
+import { getSyncStatus, subscribeSync } from '../sync';
+import { addCashMovement, closeSession, computeSessionTotals, openSession, reconcileOpenSessions } from '../cashSession';
 import type { CashMovementType, CashSession } from '../db';
 
 interface CartLine extends SaleItem {
@@ -36,7 +37,14 @@ export default function POS({ user }: { user: User }) {
   const productsRaw = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), []);
   const products = productsRaw ?? [];
   const barcodeCfg = useLiveQuery(() => getBarcodeSettings(), []) ?? defaultBarcode;
-  const session = useLiveQuery(() => db.cashSessions.where('status').equals('open').first(), []);
+  /* Caisse unique pour la boutique : on prend la plus ancienne session ouverte
+     afin que tous les appareils désignent la même, et on referme les doublons
+     nés d'ouvertures simultanées hors-ligne. */
+  const session = useLiveQuery(async () => {
+    await reconcileOpenSessions();
+    const open = await db.cashSessions.where('status').equals('open').toArray();
+    return [...open].sort((a, b) => a.openedAt.localeCompare(b.openedAt))[0];
+  }, []);
 
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -559,6 +567,7 @@ function ClosedSummaryModal({ session, onClose }: { session: CashSession; onClos
 function OpenRegisterScreen({ user }: { user: User }) {
   const { t, lang } = useI18n();
   const { toast } = useToast();
+  const syncOn = useSyncExternalStore(subscribeSync, getSyncStatus).enabled;
   const [val, setVal] = useState('');
   const amount = parseFloat(val.replace(',', '.')) || 0;
 
@@ -573,6 +582,13 @@ function OpenRegisterScreen({ user }: { user: User }) {
         <div className="login-logo"><Icon name="drawer" size={38} /></div>
         <div className="login-title">{t('registerClosed')}</div>
         <div className="login-sub">{t('registerClosedHint')}</div>
+        {/* La caisse unique repose sur la synchronisation : sans elle, chaque
+            appareil garde sa propre base et redemandera l'ouverture. Mieux vaut
+            l'expliquer ici que laisser croire à un bug. */}
+        <div className={`register-note ${syncOn ? '' : 'warn'}`}>
+          <Icon name={syncOn ? 'cloud' : 'alert'} size={16} />
+          <span>{syncOn ? t('registerSharedHint') : t('registerNeedsSync')}</span>
+        </div>
         <label>{t('openingAmount')}</label>
         <div className="numpad-display">{val || '0'} {lang === 'ar' ? 'د.م.' : 'DH'}</div>
         <NumPad value={val} onChange={setVal} />
