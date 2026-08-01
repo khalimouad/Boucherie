@@ -401,6 +401,20 @@ const sid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0'
    Produits, une fois le stock réel saisi via un achat. */
 const NO_ALERT = -1;
 
+/* Articles livrés avec une photo sous licence libre (public/photos/<code>.jpg,
+   voir CREDITS.md). Le champ `image` reçoit un CHEMIN, pas une image encodée :
+   le fichier est servi par le CDN — ou par l'exe hors-ligne — au lieu d'alourdir
+   le bundle, et surtout il ne transite pas dans pos_rows à chaque synchro,
+   contrairement aux photos prises au téléphone qui sont, elles, des dataURL.
+   Les articles absents de cette liste gardent leur vignette générée : aucune
+   photo libre correcte n'a été trouvée pour eux. */
+const WITH_PHOTO = new Set([
+  201, 202, 207, 208, 223, 225, 226, 227,
+  241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252,
+  273, 275, 276, 278, 280, 282,
+  301, 302, 303, 304, 305, 307, 308,
+]);
+
 interface SeedItem {
   n: number;
   fr: string;
@@ -533,6 +547,7 @@ export async function seedIfEmpty() {
         lowStock: it.low ?? NO_ALERT,
         code: String(it.n),
         icon: it.ic,
+        image: WITH_PHOTO.has(it.n) ? `/photos/${it.n}.jpg` : undefined,
         active: true,
       })),
     ),

@@ -7,7 +7,7 @@ export type IconName =
   | 'meat' | 'book' | 'basket' | 'trash' | 'cash' | 'barcode' | 'lock' | 'plus'
   | 'chevron' | 'x' | 'edit' | 'coins' | 'refresh' | 'logout' | 'cloud' | 'printer'
   | 'image' | 'check' | 'scale' | 'card' | 'credit' | 'drawer' | 'alert'
-  | 'sun' | 'moon' | 'monitor' | 'dots';
+  | 'sun' | 'moon' | 'monitor' | 'dots' | 'camera';
 
 const G: Record<IconName, string> = {
   menu: '<rect x="3" y="5" width="18" height="2.6" rx="1.3"/><rect x="3" y="10.7" width="18" height="2.6" rx="1.3"/><rect x="3" y="16.4" width="18" height="2.6" rx="1.3"/>',
@@ -45,6 +45,7 @@ const G: Record<IconName, string> = {
   moon: '<path d="M20.7 14.1a1 1 0 0 0-1.2-1.3 6.6 6.6 0 0 1-8.3-8.3 1 1 0 0 0-1.3-1.2A8.9 8.9 0 1 0 20.7 14.1Z"/>',
   monitor: '<path fill-rule="evenodd" clip-rule="evenodd" d="M3 4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h6v2H7a1 1 0 1 0 0 2h10a1 1 0 1 0 0-2h-2v-2h6a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H3Zm10 13h-2v2h2v-2Z"/>',
   dots: '<path d="M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>',
+  camera: '<path fill-rule="evenodd" clip-rule="evenodd" d="M9.5 3a2 2 0 0 0-1.66.89L7.1 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.1l-.74-1.11A2 2 0 0 0 14.5 3h-5Zm2.5 5.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/>',
 };
 
 export function Icon({ name, size = 22, className, style, title }: { name: IconName; size?: number; className?: string; style?: CSSProperties; title?: string }) {
