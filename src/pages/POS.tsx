@@ -38,12 +38,16 @@ export default function POS({ user }: { user: User }) {
   const products = productsRaw ?? [];
   const barcodeCfg = useLiveQuery(() => getBarcodeSettings(), []) ?? defaultBarcode;
   /* Caisse unique pour la boutique : on prend la plus ancienne session ouverte
-     afin que tous les appareils désignent la même, et on referme les doublons
-     nés d'ouvertures simultanées hors-ligne. */
+     afin que tous les appareils désignent la même. Les doublons sont fermés
+     au montage du composant via reconcileOpenSessions() dans useEffect. */
   const session = useLiveQuery(async () => {
-    await reconcileOpenSessions();
     const open = await db.cashSessions.where('status').equals('open').toArray();
     return [...open].sort((a, b) => a.openedAt.localeCompare(b.openedAt))[0];
+  }, []);
+
+  // Reconcile duplicate sessions on mount (must be outside liveQuery, which is read-only)
+  useEffect(() => {
+    void reconcileOpenSessions();
   }, []);
 
   const [catFilter, setCatFilter] = useState<string | null>(null);
