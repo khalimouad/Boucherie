@@ -15,12 +15,21 @@ const stripZeros = (s: string) => s.replace(/^0+/, '') || '0';
  * centimes or weight in grams, per settings). Any other code is matched
  * verbatim against the product `code` field.
  */
+/** Check if barcode matches prefix pattern. 'x' in pattern matches any digit. */
+function matchesPrefix(barcode: string, pattern: string): boolean {
+  if (barcode.length < pattern.length) return false;
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] !== 'x' && pattern[i] !== barcode[i]) return false;
+  }
+  return true;
+}
+
 export function parseBarcode(raw: string, cfg: BarcodeSettings, products: Product[]): ScanResult | null {
   const digits = raw.replace(/\D/g, '');
   if (!digits) return null;
 
   const scaleLen = cfg.prefix.length + cfg.codeLen + cfg.valueLen + 1; // +1 EAN check digit
-  if (cfg.enabled && digits.length === scaleLen && digits.startsWith(cfg.prefix)) {
+  if (cfg.enabled && digits.length === scaleLen && matchesPrefix(digits, cfg.prefix)) {
     const code = digits.slice(cfg.prefix.length, cfg.prefix.length + cfg.codeLen);
     const valueDigits = digits.slice(cfg.prefix.length + cfg.codeLen, cfg.prefix.length + cfg.codeLen + cfg.valueLen);
     const product = products.find((p) => p.code && stripZeros(p.code) === stripZeros(code));

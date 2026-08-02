@@ -277,8 +277,11 @@ function BarcodeCard() {
       </div>
       <div className="grid-2" style={{ marginTop: 12 }}>
         <div className="field">
-          <label>{t('barcodePrefix')}</label>
-          <input inputMode="numeric" value={bc.prefix} onChange={(e) => up({ prefix: e.target.value.replace(/\D/g, '') })} />
+          <label>
+            {t('barcodePrefix')}
+            <div style={{ fontSize: '0.75rem', color: 'var(--ink-2)', marginTop: 4, fontWeight: 400 }}>ex: 'xx' ou '2x' ou '23'</div>
+          </label>
+          <input value={bc.prefix} onChange={(e) => up({ prefix: e.target.value.toLowerCase().replace(/[^0-9x]/g, '') })} placeholder="ex: xx" />
         </div>
         <div className="field">
           <label>{t('barcodeValueMode')}</label>

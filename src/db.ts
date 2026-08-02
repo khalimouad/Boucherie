@@ -369,7 +369,7 @@ export const defaultTicket: TicketSettings = {
 /** Scale barcode layout: [prefix][item code][value][EAN check digit]. */
 export interface BarcodeSettings {
   enabled: boolean;
-  prefix: string; // e.g. '2' or '20'
+  prefix: string; // pattern with 'x' for any digit, e.g. '2x' or 'xx'
   codeLen: number; // digits of the product code
   valueLen: number; // digits of the embedded value
   valueMode: 'price' | 'weight'; // price in centimes or weight in grams
@@ -377,7 +377,7 @@ export interface BarcodeSettings {
 
 export const defaultBarcode: BarcodeSettings = {
   enabled: true,
-  prefix: '2',
+  prefix: 'xx', // 2-digit variable prefix (21, 23, etc.)
   codeLen: 5,
   valueLen: 5,
   valueMode: 'price',
