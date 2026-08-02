@@ -62,7 +62,7 @@ supabase start && supabase db reset
 
 1. **Créer le compte de la boutique** : Dashboard → *Authentication* → *Users* →
    *Add user*, avec l'adresse définie par `CLOUD_EMAIL` dans `src/sync.ts`
-   (`uncmou+caisse@gmail.com`) et un mot de passe fort. Tous les appareils de la
+   (`alwaha.boucherie@gmail.com`) et un mot de passe fort. Tous les appareils de la
    boutique partagent ce compte.
 2. **Vérifier `SUPABASE_URL` / `SUPABASE_KEY`** dans `src/sync.ts` : ils doivent
    pointer sur votre projet (la clé *publishable* est faite pour être embarquée ;

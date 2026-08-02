@@ -15,7 +15,7 @@ import react from '@vitejs/plugin-react';
 const FALLBACK = {
   url: 'https://nkqlwcjgvxkhxhmnrpfc.supabase.co',
   key: 'sb_publishable_UhGqkbZO4LFihxJcquAEUg_BOy3gcaO',
-  email: 'uncmou+caisse@gmail.com',
+  email: 'alwaha.boucherie@gmail.com',
 };
 
 export default defineConfig(({ mode }) => {
