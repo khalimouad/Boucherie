@@ -1709,37 +1709,76 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
 .scan-btn:active { transform: scale(0.93); }
 @media (hover: hover) { .scan-btn:hover { background: var(--em-500); color: #fff; } }
 
-/* ---- service en salle : sélecteur de tables ---- */
-.table-bar {
+/* ---- service en salle : bouton déclencheur + fenêtre de sélection ----
+   Une barre horizontale ne tient pas à 40 tables : au-delà d'une douzaine de
+   chips il faudrait défiler sur un seul axe pour en trouver une, sans jamais
+   voir l'ensemble d'un coup d'œil. Le bouton ouvre une fenêtre avec une
+   grille — toutes les tables visibles ensemble, occupées repérables au
+   premier coup d'œil par leur liseré ambre. */
+.table-trigger {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
   flex-shrink: 0;
-  overflow-x: auto;
-  padding: 2px 2px 4px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
+  padding: 11px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  text-align: start;
+  font-weight: 750;
+  transition: border-color var(--t-2) var(--e-out), transform var(--t-1) var(--e-out), box-shadow var(--t-2) var(--e-out);
 }
-.table-bar::-webkit-scrollbar { display: none; }
+.table-trigger:active { transform: scale(0.99); }
+@media (hover: hover) { .table-trigger:hover { border-color: var(--border-strong); box-shadow: var(--sh-1); } }
+.table-trigger .tt-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  background: var(--brand-tint);
+  color: var(--brand-on-tint);
+}
+.table-trigger.busy .tt-icon { background: var(--warn-tint); color: var(--warn-strong); }
+.table-trigger .tt-body { flex: 1; min-width: 0; }
+.table-trigger .tt-label { font-size: 0.92rem; }
+.table-trigger .tt-sub { font-size: 0.76rem; font-weight: 600; color: var(--ink-2); margin-top: 1px; }
+.table-trigger .tt-count {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: var(--r-full);
+  background: var(--warn-tint);
+  color: var(--warn-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.table-trigger .tt-chevron { flex-shrink: 0; color: var(--ink-3); }
+
+/* grille dans la fenêtre de sélection */
+.table-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 9px;
+}
 .table-chip {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   gap: 1px;
-  min-width: 92px;
-  min-height: 52px;
-  padding: 8px 13px;
-  flex-shrink: 0;
-  scroll-snap-align: start;
+  min-height: 58px;
+  padding: 9px 12px;
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--surface-2);
   border: 1.5px solid var(--border);
   text-align: start;
   transition: background var(--t-2) var(--e-out), border-color var(--t-2) var(--e-out),
     color var(--t-2) var(--e-out), transform var(--t-1) var(--e-out), box-shadow var(--t-2) var(--e-out);
 }
-.table-chip:active { transform: scale(0.96); }
+.table-chip:active { transform: scale(0.95); }
 @media (hover: hover) { .table-chip:hover { border-color: var(--border-strong); } }
 .table-chip .tc-label { font-size: 0.86rem; font-weight: 750; letter-spacing: -0.01em; }
 .table-chip .tc-sub { font-size: 0.72rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
@@ -1758,16 +1797,17 @@ table.data tr.clickable:active td { background: var(--brand-tint); }
 }
 .table-chip.on .tc-sub { color: color-mix(in srgb, var(--surface) 75%, transparent); }
 .table-chip.counter {
+  grid-column: 1 / -1;
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  font-size: 0.86rem;
-  font-weight: 750;
+  min-height: 48px;
+  font-size: 0.88rem;
 }
 
 @media (max-width: 640px) {
-  .table-chip { min-width: 84px; min-height: 48px; padding: 7px 11px; }
+  .table-grid { grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 7px; }
+  .table-chip { min-height: 52px; padding: 7px 10px; }
 }
 
 /* category chips */

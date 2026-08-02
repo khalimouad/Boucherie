@@ -57,6 +57,7 @@ export default function POS({ user }: { user: User }) {
   const [closedSummary, setClosedSummary] = useState<CashSession | null>(null);
   const [scanModal, setScanModal] = useState(false);
   const [sessionDrawer, setSessionDrawer] = useState(false);
+  const [tablePicker, setTablePicker] = useState(false);
   // on phones the cart is a bottom sheet driven by the floating summary bar
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -104,6 +105,7 @@ export default function POS({ user }: { user: User }) {
 
   const selectTable = async (label: string) => {
     tap();
+    setTablePicker(false);
     const existing = openTables.find((tb) => tb.label === label);
     if (existing) {
       setActiveTableId(existing.id!);
@@ -130,6 +132,7 @@ export default function POS({ user }: { user: User }) {
 
   const selectCounter = () => {
     tap();
+    setTablePicker(false);
     setActiveTableId(null);
     setCart([]);
   };
@@ -257,33 +260,24 @@ export default function POS({ user }: { user: User }) {
         <span className="sch-chevron" aria-hidden="true">›</span>
       </button>
       {tablesOn && (
-        <div className="table-bar" role="tablist" aria-label={t('tables')}>
-          <button
-            className={`table-chip counter ${!activeTableId ? 'on' : ''}`}
-            onClick={selectCounter}
-            role="tab"
-            aria-selected={!activeTableId}
-          >
-            <Icon name="basket" size={16} /> {t('counter')}
-          </button>
-          {Array.from({ length: tableCount }, (_, i) => {
-            const label = String(i + 1);
-            const row = openTables.find((tb) => tb.label === label);
-            const total = row ? round2(row.items.reduce((a, it) => a + it.total, 0)) : 0;
-            return (
-              <button
-                key={label}
-                className={`table-chip ${row ? 'busy' : ''} ${activeTable?.label === label ? 'on' : ''}`}
-                onClick={() => void selectTable(label)}
-                role="tab"
-                aria-selected={activeTable?.label === label}
-              >
-                <span className="tc-label">{t('table')} {label}</span>
-                <span className="tc-sub">{row ? fmtDH(total, lang) : t('freeTable')}</span>
-              </button>
-            );
-          })}
-        </div>
+        <button
+          className={`table-trigger ${openTables.length > 0 ? 'busy' : ''}`}
+          onClick={() => { tap(); setTablePicker(true); }}
+        >
+          <span className="tt-icon" aria-hidden="true">
+            <Icon name={activeTable ? 'grid' : 'basket'} size={17} />
+          </span>
+          <span className="tt-body">
+            <div className="tt-label">{activeTable ? `${t('table')} ${activeTable.label}` : t('counter')}</div>
+            <div className="tt-sub">
+              {activeTable
+                ? fmtDH(round2(activeTable.items.reduce((a, it) => a + it.total, 0)), lang)
+                : t('chooseTableHint')}
+            </div>
+          </span>
+          {openTables.length > 0 && <span className="tt-count">{openTables.length}</span>}
+          <span className="tt-chevron" aria-hidden="true"><Icon name="chevron" size={18} /></span>
+        </button>
       )}
       <div className="pos">
       <div className="pos-left">
@@ -493,6 +487,17 @@ export default function POS({ user }: { user: User }) {
         </Drawer>
       )}
 
+      {tablePicker && (
+        <TablePickerModal
+          count={tableCount}
+          openTables={openTables}
+          activeLabel={activeTable?.label ?? null}
+          onClose={() => setTablePicker(false)}
+          onSelectCounter={selectCounter}
+          onSelectTable={(label) => void selectTable(label)}
+        />
+      )}
+
       {scanModal && (
         <ScanModal
           onClose={() => setScanModal(false)}
@@ -700,6 +705,52 @@ function CloseRegisterModal({
       <div className="field" style={{ marginTop: 12 }}>
         <label>{t('note')}</label>
         <input value={note} onChange={(e) => setNote(e.target.value)} />
+      </div>
+    </Modal>
+  );
+}
+
+/* Fenêtre de sélection de table : une grille plutôt qu'une barre, pour rester
+   lisible avec 40 tables — toutes visibles d'un coup, sans défiler pour en
+   trouver une. Le comptoir occupe la première ligne entière, seule option
+   qui n'est jamais « occupée ». */
+function TablePickerModal({
+  count,
+  openTables,
+  activeLabel,
+  onClose,
+  onSelectCounter,
+  onSelectTable,
+}: {
+  count: number;
+  openTables: TableOrder[];
+  activeLabel: string | null;
+  onClose: () => void;
+  onSelectCounter: () => void;
+  onSelectTable: (label: string) => void;
+}) {
+  const { t, lang } = useI18n();
+  return (
+    <Modal title={t('tables')} onClose={onClose}>
+      <div className="table-grid">
+        <button className={`table-chip counter ${!activeLabel ? 'on' : ''}`} onClick={onSelectCounter}>
+          <Icon name="basket" size={17} /> {t('counter')}
+        </button>
+        {Array.from({ length: count }, (_, i) => {
+          const label = String(i + 1);
+          const row = openTables.find((tb) => tb.label === label);
+          const total = row ? round2(row.items.reduce((a, it) => a + it.total, 0)) : 0;
+          return (
+            <button
+              key={label}
+              className={`table-chip ${row ? 'busy' : ''} ${activeLabel === label ? 'on' : ''}`}
+              onClick={() => onSelectTable(label)}
+            >
+              <span className="tc-label">{t('table')} {label}</span>
+              <span className="tc-sub">{row ? fmtDH(total, lang) : t('freeTable')}</span>
+            </button>
+          );
+        })}
       </div>
     </Modal>
   );

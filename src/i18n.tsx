@@ -323,6 +323,7 @@ const dict = {
   addToTable: { fr: 'Ajouté à la table', ar: 'تزاد للطاولة' },
   closeTableEmpty: { fr: 'Libérer la table', ar: 'حرّر الطاولة' },
   tableEmptyHint: { fr: 'Table vide — rien à régler', ar: 'الطاولة خاوية — ماكاين ما يتخلص' },
+  chooseTableHint: { fr: 'Choisir une table…', ar: 'اختار طاولة…' },
 
   // shell / appearance
   more: { fr: 'Plus', ar: 'المزيد' },

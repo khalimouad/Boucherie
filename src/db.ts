@@ -431,7 +431,7 @@ export interface FeatureSettings {
 export const defaultFeatures: FeatureSettings = {
   wasteEnabled: true,
   tablesEnabled: true,
-  tableCount: 12,
+  tableCount: 40,
 };
 
 export const getFeatureSettings = () => getJsonSetting('features', defaultFeatures);
