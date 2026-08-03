@@ -88,6 +88,7 @@ export default function POS({ user }: { user: User }) {
   }, [products, catFilter, query]);
 
   const subtotal = round2(cart.reduce((s, l) => s + l.total, 0));
+  const totalWeight = round2(cart.reduce((s, l) => s + (l.unit === 'kg' ? l.qty : 0), 0));
 
   // pulse the grand total whenever it moves, so the cashier's eye follows it
   const [bump, setBump] = useState(false);
@@ -393,6 +394,12 @@ export default function POS({ user }: { user: User }) {
           ))}
         </div>
         <div className="cart-totals">
+          {totalWeight > 0 && (
+            <div className="row weight">
+              <span style={{ fontSize: '0.85rem', color: 'var(--ink-2)' }}>Poids total (kg)</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--ink-2)' }}>{fmtQty(totalWeight, 'kg')}</span>
+            </div>
+          )}
           <div className="row grand">
             <span>{t('total')}</span>
             <span className={bump ? 'total-bump' : ''}>{fmtDH(subtotal, lang)}</span>
