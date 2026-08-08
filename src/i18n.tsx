@@ -154,6 +154,7 @@ const dict = {
   exportCsv: { fr: 'Exporter CSV', ar: 'تصدير CSV' },
   ticketNo: { fr: 'Ticket N°', ar: 'تيكي رقم' },
   voidSale: { fr: 'Annuler la vente', ar: 'إلغاء البيع' },
+  confirmVoid: { fr: 'Confirmer annulation', ar: 'تأكيد الإلغاء' },
   voided: { fr: 'Annulée', ar: 'ملغية' },
   reprint: { fr: 'Réimprimer', ar: 'إعادة الطباعة' },
   details: { fr: 'Détails', ar: 'التفاصيل' },

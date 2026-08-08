@@ -14,7 +14,7 @@ import {
   type SaleItem,
   type User,
 } from '../db';
-import { localName, useI18n } from '../i18n';
+import { localName, useI18n, type Lang } from '../i18n';
 import { fmtDH, fmtDateTime, fmtQty, genTicketNumber, round2, todayISO } from '../utils';
 import { Drawer, Empty, Modal, NumPad, ProductGridSkeleton, tap, useToast } from '../components/shared';
 import { Icon } from '../components/Icon';
@@ -45,6 +45,11 @@ export default function POS({ user }: { user: User }) {
     return [...open].sort((a, b) => a.openedAt.localeCompare(b.openedAt))[0];
   }, []);
 
+  const todaySales = useLiveQuery(async () => {
+    const today = todayISO();
+    return await db.sales.where('date').between(today + 'T00:00:00', today + 'T23:59:59', true, true).toArray();
+  }, []) ?? [];
+
   // Reconcile duplicate sessions on mount (must be outside liveQuery, which is read-only)
   useEffect(() => {
     void reconcileOpenSessions();
@@ -62,6 +67,7 @@ export default function POS({ user }: { user: User }) {
   const [scanModal, setScanModal] = useState(false);
   const [sessionDrawer, setSessionDrawer] = useState(false);
   const [tablePicker, setTablePicker] = useState(false);
+  const [historyModal, setHistoryModal] = useState(false);
   // on phones the cart is a bottom sheet driven by the floating summary bar
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -242,6 +248,19 @@ export default function POS({ user }: { user: User }) {
     printSaleTicket(sale, ts);
   };
 
+  const voidSale = async (s: Sale) => {
+    if (!confirm(`${t('confirmVoid')} ${s.number}?`)) return;
+    await db.transaction('rw', db.sales, db.products, async () => {
+      for (const item of s.items) {
+        const prod = await db.products.get(item.productId);
+        if (prod) await db.products.update(item.productId, { stock: prod.stock + item.qty });
+      }
+      await db.sales.update(s.id!, { status: 'void' });
+    });
+    toast(t('voided'));
+    setHistoryModal(false);
+  };
+
   // Closing flips `session` to undefined on the next tick (useLiveQuery re-runs
   // against a table with no open row), so the summary modal is rendered from
   // this outer branch — otherwise it would be unmounted before ever showing.
@@ -294,6 +313,7 @@ export default function POS({ user }: { user: User }) {
           {barcodeCfg.enabled && (
             <button className="scan-btn" onClick={() => setScanModal(true)} aria-label={t('barcode')} title={t('barcode')}><Icon name="barcode" size={22} /></button>
           )}
+          <button className="scan-btn" onClick={() => setHistoryModal(true)} aria-label="History" title="Today's orders"><Icon name="book" size={22} /></button>
         </div>
         <div className="cat-chips">
           <button className={`cat-chip ${catFilter === null ? 'on' : ''}`} onClick={() => { tap(); setCatFilter(null); }}>
@@ -516,6 +536,15 @@ export default function POS({ user }: { user: User }) {
             setScanModal(false);
             onScan(code);
           }}
+        />
+      )}
+
+      {historyModal && (
+        <HistoryModal
+          sales={todaySales}
+          onClose={() => setHistoryModal(false)}
+          onVoid={voidSale}
+          lang={lang}
         />
       )}
 
@@ -919,6 +948,43 @@ function PayModal({
           )}
         </>
       )}
+    </Modal>
+  );
+}
+
+function HistoryModal({ sales, onClose, onVoid, lang }: { sales: Sale[]; onClose: () => void; onVoid: (s: Sale) => Promise<void>; lang: Lang }) {
+  const { t } = useI18n();
+  const sortedSales = [...sales].sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <Modal title={`${t('salesReport')} — Today`} onClose={onClose}>
+      <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+        {sortedSales.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--ink-2)' }}>No orders today</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {sortedSales.map((s) => (
+              <div key={s.id} style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 'var(--r-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{s.number}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)' }}>{fmtDateTime(s.date, lang)} · {s.userName}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)' }}>{s.items.length} item{s.items.length > 1 ? 's' : ''}</div>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                  <div style={{ fontWeight: 600 }}>{fmtDH(s.total, lang)}</div>
+                  {s.status === 'void' ? (
+                    <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--warn-tint)', color: 'var(--warn-strong)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>Voided</span>
+                  ) : (
+                    <button className="btn btn-sm btn-danger" onClick={() => onVoid(s)} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>
+                      <Icon name="x" size={14} /> Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </Modal>
   );
 }
