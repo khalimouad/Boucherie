@@ -13,6 +13,11 @@ initTheme();
    most cases when the POS runs from its own browser profile. */
 void navigator.storage?.persist?.().catch(() => {});
 
+/* Register service worker for offline support and PWA installation */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <I18nProvider>

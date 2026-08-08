@@ -1,0 +1,54 @@
+{
+  "name": "جزارة ومطعم عبد الدايم — Boucherie & Restaurant Abdeddaim",
+  "short_name": "Boucherie POS",
+  "description": "Point de vente pour boucherie — caisse tactile, mobile et hors-ligne.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#d43423",
+  "background_color": "#ffffff",
+  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'%3E%3Crect width='540' height='720' fill='%23f5f7fa'/%3E%3C/svg%3E",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='45' fill='%23d43423'/%3E%3Cg transform='translate(21 21)' fill='%23fff'%3E%3Cg transform='rotate(-22 50 88)'%3E%3Cpath d='M33 14h34a5 5 0 0 1 5 5v27a5 5 0 0 1-5 5H33a5 5 0 0 1-5-5V19a5 5 0 0 1 5-5Z'/%3E%3Crect x='45.5' y='49' width='9' height='37' rx='4.5'/%3E%3C/g%3E%3Cg transform='rotate(22 50 88)'%3E%3Crect x='42' y='14' width='4' height='20' rx='2'/%3E%3Crect x='48' y='14' width='4' height='20' rx='2'/%3E%3Crect x='54' y='14' width='4' height='20' rx='2'/%3E%3Cpath d='M40.5 31h19v6a10 10 0 0 1-7 9.5V84a2.5 2.5 0 0 1-5 0V46.5A10 10 0 0 1 40.5 37Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='45' fill='%23d43423'/%3E%3Cg transform='translate(21 21)' fill='%23fff'%3E%3Cg transform='rotate(-22 50 88)'%3E%3Cpath d='M33 14h34a5 5 0 0 1 5 5v27a5 5 0 0 1-5 5H33a5 5 0 0 1-5-5V19a5 5 0 0 1 5-5Z'/%3E%3Crect x='45.5' y='49' width='9' height='37' rx='4.5'/%3E%3C/g%3E%3Cg transform='rotate(22 50 88)'%3E%3Crect x='42' y='14' width='4' height='20' rx='2'/%3E%3Crect x='48' y='14' width='4' height='20' rx='2'/%3E%3Crect x='54' y='14' width='4' height='20' rx='2'/%3E%3Cpath d='M40.5 31h19v6a10 10 0 0 1-7 9.5V84a2.5 2.5 0 0 1-5 0V46.5A10 10 0 0 1 40.5 37Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ventes",
+      "short_name": "Ventes",
+      "description": "Nouvelle vente",
+      "url": "/?mode=pos",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Crect width='96' height='96' rx='22' fill='%23d43423'/%3E%3Ctext x='48' y='58' font-size='40' fill='%23fff' text-anchor='middle'%3E$%3C/text%3E%3C/svg%3E",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": ["navigate-new"]
+  },
+  "display_override": ["window-controls-overlay", "standalone", "browser"]
+}
